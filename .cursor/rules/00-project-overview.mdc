@@ -41,13 +41,13 @@ Simplicité, élégance, rapidité, sécurité, évolutivité, UX premium.
 
 ## Modules principaux
 
-| Module | Rôle |
-|--------|------|
-| Boutique | Catalogue, catégories, recherche, filtres, panier, paiement |
-| Arrivages | Cargos (départ, ETA, produits, quantités), réservations pré-arrivée |
-| Courses | Demande d’achat CI → devis → acceptation → commande |
-| Commandes | Parcours de statut + notifications |
-| Admin Filament | Produits, stocks, cargos, commandes, clients, courses, stats |
+| Module         | Rôle                                                                |
+| -------------- | ------------------------------------------------------------------- |
+| Boutique       | Catalogue, catégories, recherche, filtres, panier, paiement         |
+| Arrivages      | Cargos (départ, ETA, produits, quantités), réservations pré-arrivée |
+| Courses        | Demande d’achat CI → devis → acceptation → commande                 |
+| Commandes      | Parcours de statut + notifications                                  |
+| Admin Filament | Produits, stocks, cargos, commandes, clients, courses, stats        |
 
 ### Statuts de commande (référence)
 
@@ -57,12 +57,12 @@ Chaque transition doit pouvoir déclencher une notification.
 
 ## Priorités de décision
 
-1. Expérience utilisateur  
-2. Simplicité  
-3. Lisibilité  
-4. Maintenabilité  
-5. Performance  
-6. Réutilisabilité  
+1. Expérience utilisateur
+2. Simplicité
+3. Lisibilité
+4. Maintenabilité
+5. Performance
+6. Réutilisabilité
 
 ## Rôle de Cursor
 
