@@ -125,42 +125,42 @@ function addToCart(product: FeaturedProduct) {
         </Head>
 
         <!-- Hero -->
-        <section class="relative isolate min-h-[72svh] overflow-hidden bg-forest-950 md:min-h-[68svh]">
+        <section class="relative isolate min-h-[64svh] overflow-hidden bg-forest-950 sm:min-h-[68svh] md:min-h-[68svh]">
             <HeroSlider v-model="activeSlide" :slides="slides" />
 
             <div
-                class="relative z-20 mx-auto flex min-h-[72svh] max-w-3xl flex-col items-center justify-center px-5 pb-20 pt-28 text-center md:min-h-[68svh] md:px-8 md:pb-24"
+                class="relative z-20 mx-auto flex min-h-[64svh] max-w-3xl flex-col items-center justify-center px-4 pb-12 pt-[calc(var(--header-offset)+0.5rem)] text-center sm:min-h-[68svh] sm:px-5 sm:pb-20 sm:pt-[calc(var(--header-offset)+1rem)] md:px-8 md:pb-24"
             >
                 <p
-                    class="animate-fade-up text-sm font-medium tracking-[0.28em] text-brass-light uppercase"
+                    class="animate-fade-up hidden text-sm font-medium tracking-[0.28em] text-brass-light uppercase sm:block"
                 >
                     Côte d’Ivoire → Canada
                 </p>
 
                 <h1
-                    class="animate-fade-up animation-delay-150 font-display mt-5 text-[clamp(2.75rem,7.5vw,5.5rem)] leading-[0.92] text-white"
+                    class="animate-fade-up animation-delay-150 font-display text-[clamp(2.15rem,8vw,5.5rem)] leading-[1.08] text-white sm:mt-5 sm:leading-[0.95] md:leading-[0.92]"
                 >
                     Ôhéfê Market
                 </h1>
 
                 <p
-                    class="animate-fade-up animation-delay-300 mt-6 max-w-lg text-lg leading-relaxed text-white/80 md:text-xl"
+                    class="animate-fade-up animation-delay-300 mt-3 max-w-md text-sm leading-relaxed text-white/80 sm:mt-6 sm:max-w-lg sm:text-lg md:text-xl"
                 >
                     {{ activeCaption }}
                 </p>
 
                 <div
-                    class="animate-fade-up animation-delay-450 mt-10 flex flex-wrap items-center justify-center gap-3"
+                    class="animate-fade-up animation-delay-450 mt-6 flex items-center justify-center gap-3 sm:mt-10"
                 >
                     <Link
                         href="/boutique"
-                        class="inline-flex min-h-12 items-center justify-center bg-brass px-8 text-sm font-semibold text-forest-950 transition hover:bg-brass-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                        class="inline-flex min-h-11 items-center justify-center bg-brass px-7 text-sm font-semibold text-forest-950 transition hover:bg-brass-light focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:min-h-12 sm:px-8"
                     >
                         Voir la boutique
                     </Link>
                     <Link
                         href="/arrivages"
-                        class="inline-flex min-h-12 items-center justify-center border border-white/40 px-8 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                        class="hidden min-h-12 items-center justify-center border border-white/40 px-8 text-sm font-semibold text-white transition hover:border-white hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:inline-flex"
                     >
                         Prochain arrivage
                     </Link>
@@ -171,7 +171,7 @@ function addToCart(product: FeaturedProduct) {
         <!-- Promise strip: one job, no stats clutter -->
         <section class="border-b border-forest-900/10 bg-white">
             <div
-                class="mx-auto grid max-w-6xl gap-8 px-5 py-10 md:grid-cols-3 md:gap-6 md:px-8 md:py-12"
+                class="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-5 md:grid-cols-3 md:gap-6 md:px-8 md:py-12"
             >
                 <p class="text-center text-sm leading-relaxed text-ink-muted md:text-left">
                     <span class="block font-display text-xl text-forest-900">Authentique</span>
@@ -189,24 +189,24 @@ function addToCart(product: FeaturedProduct) {
         </section>
 
         <!-- Featured products -->
-        <section v-if="featured.length" class="bg-stone-soft px-5 py-18 md:px-8 md:py-24">
+        <section v-if="featured.length" class="bg-stone-soft px-4 py-14 sm:px-5 md:px-8 md:py-24">
             <div class="mx-auto max-w-6xl">
-                <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div class="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-end md:justify-between">
                     <div>
                         <p class="text-sm tracking-[0.2em] text-brass uppercase">Sélection</p>
-                        <h2 class="font-display mt-2 text-3xl text-forest-900 md:text-4xl">
+                        <h2 class="font-display mt-2 text-2xl text-forest-900 sm:text-3xl md:text-4xl">
                             Coups de cœur du moment
                         </h2>
                     </div>
                     <Link
                         href="/boutique"
-                        class="text-sm font-semibold text-forest-700 transition hover:text-forest-900"
+                        class="inline-flex min-h-11 items-center text-sm font-semibold text-forest-700 transition hover:text-forest-900"
                     >
                         Tout le catalogue →
                     </Link>
                 </div>
 
-                <div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="mt-10 grid gap-4 sm:mt-12 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
                     <article
                         v-for="product in featured"
                         :key="product.id"
@@ -219,20 +219,20 @@ function addToCart(product: FeaturedProduct) {
                                 img-class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                             />
                         </div>
-                        <div class="flex flex-1 flex-col p-5">
+                        <div class="flex flex-1 flex-col p-4 sm:p-5">
                             <p class="text-xs tracking-wide text-ink-muted uppercase">
                                 {{ product.category }}
                             </p>
-                            <h3 class="font-display mt-3 text-xl text-forest-900 transition group-hover:text-forest-800">
+                            <h3 class="font-display mt-2 text-lg text-forest-900 transition group-hover:text-forest-800 sm:mt-3 sm:text-xl">
                                 {{ product.name }}
                             </h3>
-                            <p class="mt-auto pt-6 text-sm font-semibold text-forest-900">
+                            <p class="mt-auto pt-5 text-sm font-semibold text-forest-900 sm:pt-6">
                                 {{ product.price }}
                                 <span class="font-normal text-ink-muted">/ {{ product.unit }}</span>
                             </p>
                             <button
                                 type="button"
-                                class="mt-4 min-h-10 w-full border border-forest-900/15 text-sm font-semibold text-forest-900 transition hover:bg-forest-900 hover:text-white disabled:opacity-40"
+                                class="mt-4 min-h-11 w-full border border-forest-900/15 text-sm font-semibold text-forest-900 transition hover:bg-forest-900 hover:text-white disabled:opacity-40"
                                 :disabled="!product.in_stock || addingId === product.id"
                                 @click="addToCart(product)"
                             >
@@ -251,24 +251,24 @@ function addToCart(product: FeaturedProduct) {
         </section>
 
         <!-- Paths: editorial, not card grid -->
-        <section id="parcours" class="bg-forest-950 px-5 py-18 text-white md:px-8 md:py-24">
+        <section id="parcours" class="bg-forest-950 px-4 py-14 text-white sm:px-5 md:px-8 md:py-24">
             <div class="mx-auto max-w-6xl">
                 <div class="max-w-2xl">
                     <p class="text-sm tracking-[0.2em] text-brass-light uppercase">Parcours</p>
-                    <h2 class="font-display mt-3 text-3xl md:text-4xl">
+                    <h2 class="font-display mt-3 text-2xl sm:text-3xl md:text-4xl">
                         Trois façons de commander
                     </h2>
-                    <p class="mt-4 text-lg text-white/65">
+                    <p class="mt-4 text-base text-white/65 sm:text-lg">
                         Choisissez selon votre besoin — stock, anticipé, ou sur mesure.
                     </p>
                 </div>
 
-                <div class="mt-12 grid gap-4 md:grid-cols-3">
+                <div class="mt-10 grid gap-3 sm:mt-12 sm:gap-4 md:grid-cols-3">
                     <Link
                         v-for="(path, index) in paths"
                         :key="path.title"
                         :href="path.href"
-                        class="group relative block min-h-[22rem] overflow-hidden"
+                        class="group relative block min-h-[18rem] overflow-hidden sm:min-h-[22rem]"
                     >
                         <ResponsiveImage
                             :webp="path.image.webp"
@@ -279,11 +279,11 @@ function addToCart(product: FeaturedProduct) {
                         <div
                             class="absolute inset-0 bg-gradient-to-t from-forest-950 via-forest-950/45 to-transparent"
                         />
-                        <div class="absolute inset-x-0 bottom-0 p-6 md:p-7">
-                            <span class="font-display text-4xl text-white/25">
+                        <div class="absolute inset-x-0 bottom-0 p-5 sm:p-6 md:p-7">
+                            <span class="font-display text-3xl text-white/25 sm:text-4xl">
                                 {{ String(index + 1).padStart(2, '0') }}
                             </span>
-                            <h3 class="font-display mt-2 text-2xl text-white">{{ path.title }}</h3>
+                            <h3 class="font-display mt-2 text-xl text-white sm:text-2xl">{{ path.title }}</h3>
                             <p class="mt-2 text-sm leading-relaxed text-white/70">{{ path.text }}</p>
                             <span
                                 class="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-brass-light transition group-hover:gap-3"
@@ -300,7 +300,7 @@ function addToCart(product: FeaturedProduct) {
         <!-- Next arrival highlight -->
         <section id="arrivages" class="bg-stone-soft">
             <div class="mx-auto grid max-w-6xl md:grid-cols-2">
-                <div class="relative min-h-[20rem] md:min-h-[28rem]">
+                <div class="relative min-h-[16rem] sm:min-h-[20rem] md:min-h-[28rem]">
                     <ResponsiveImage
                         webp="/images/landing/section-fresh.webp"
                         jpg="/images/landing/section-fresh.jpg"
@@ -309,38 +309,41 @@ function addToCart(product: FeaturedProduct) {
                     />
                 </div>
 
-                <div class="flex flex-col justify-center px-5 py-14 md:px-12 md:py-20">
+                <div class="flex flex-col justify-center px-4 py-12 sm:px-5 sm:py-14 md:px-12 md:py-20">
                     <p class="text-sm tracking-[0.2em] text-brass uppercase">Arrivages</p>
-                    <h2 class="font-display mt-3 text-3xl text-forest-900 md:text-4xl">
+                    <h2 class="font-display mt-3 text-2xl text-forest-900 sm:text-3xl md:text-4xl">
                         Réservez avant l’arrivée
                     </h2>
-                    <p class="mt-4 max-w-md text-lg leading-relaxed text-ink-muted">
+                    <p class="mt-4 max-w-md text-base leading-relaxed text-ink-muted sm:text-lg">
                         Anticipez : bloquez vos quantités sur le cargo, on vous prévient dès que
                         c’est disponible au Canada.
                     </p>
 
                     <div
                         v-if="nextArrival"
-                        class="mt-8 border border-forest-900/10 bg-white p-6"
+                        class="mt-8 border border-forest-900/10 bg-white p-5 sm:p-6"
                     >
                         <p class="text-xs tracking-[0.18em] text-ink-muted uppercase">
                             {{ nextArrival.status ?? 'Prochain cargo' }}
                         </p>
-                        <p class="font-display mt-2 text-2xl text-forest-900">
+                        <p class="font-display mt-2 text-xl text-forest-900 sm:text-2xl">
                             {{ nextArrival.name ?? nextArrival.label }}
                         </p>
-                        <p class="mt-2 text-sm text-ink-muted">
-                            {{ nextArrival.label }}
-                            <span class="text-forest-900"> · ETA {{ nextArrival.eta }}</span>
-                            <span v-if="nextArrival.items_count">
-                                · {{ nextArrival.items_count }} produits
-                            </span>
-                        </p>
+                        <div class="mt-3 space-y-1 text-sm text-ink-muted">
+                            <p>{{ nextArrival.label }}</p>
+                            <p>
+                                ETA
+                                <span class="font-medium text-forest-900">{{ nextArrival.eta }}</span>
+                                <span v-if="nextArrival.items_count">
+                                    · {{ nextArrival.items_count }} produits
+                                </span>
+                            </p>
+                        </div>
                     </div>
 
                     <Link
                         href="/arrivages"
-                        class="mt-8 inline-flex min-h-12 w-fit items-center bg-forest-900 px-7 text-sm font-semibold text-white transition hover:bg-forest-800"
+                        class="mt-8 inline-flex min-h-12 w-full items-center justify-center bg-forest-900 px-7 text-sm font-semibold text-white transition hover:bg-forest-800 sm:w-fit"
                     >
                         Voir les arrivages
                     </Link>
@@ -351,22 +354,22 @@ function addToCart(product: FeaturedProduct) {
         <!-- Custom course -->
         <section id="courses" class="bg-white">
             <div class="mx-auto grid max-w-6xl md:grid-cols-2">
-                <div class="order-2 flex flex-col justify-center px-5 py-14 md:order-1 md:px-12 md:py-20">
+                <div class="order-2 flex flex-col justify-center px-4 py-12 sm:px-5 sm:py-14 md:order-1 md:px-12 md:py-20">
                     <p class="text-sm tracking-[0.2em] text-brass uppercase">Courses</p>
-                    <h2 class="font-display mt-3 text-3xl text-forest-900 md:text-4xl">
+                    <h2 class="font-display mt-3 text-2xl text-forest-900 sm:text-3xl md:text-4xl">
                         On cherche pour vous
                     </h2>
-                    <p class="mt-4 max-w-md text-lg leading-relaxed text-ink-muted">
+                    <p class="mt-4 max-w-md text-base leading-relaxed text-ink-muted sm:text-lg">
                         Décrivez le produit. Nous établissons un devis. Vous validez. On importe.
                     </p>
                     <Link
                         href="/courses"
-                        class="mt-8 inline-flex min-h-12 w-fit items-center border border-forest-900 bg-transparent px-7 text-sm font-semibold text-forest-900 transition hover:bg-forest-900 hover:text-white"
+                        class="mt-8 inline-flex min-h-12 w-full items-center justify-center border border-forest-900 bg-transparent px-7 text-sm font-semibold text-forest-900 transition hover:bg-forest-900 hover:text-white sm:w-fit"
                     >
                         Faire une demande
                     </Link>
                 </div>
-                <div class="relative order-1 min-h-[20rem] md:order-2 md:min-h-[28rem]">
+                <div class="relative order-1 min-h-[16rem] sm:min-h-[20rem] md:order-2 md:min-h-[28rem]">
                     <ResponsiveImage
                         webp="/images/landing/section-community.webp"
                         jpg="/images/landing/section-community.jpg"
@@ -387,24 +390,24 @@ function addToCart(product: FeaturedProduct) {
             />
             <div class="absolute inset-0 bg-forest-950/60" />
             <div
-                class="relative mx-auto flex max-w-3xl flex-col items-center px-5 py-24 text-center md:py-32"
+                class="relative mx-auto flex max-w-3xl flex-col items-center px-4 py-16 text-center sm:px-5 sm:py-24 md:py-32"
             >
-                <h2 class="font-display text-3xl text-white md:text-5xl">
+                <h2 class="font-display text-2xl text-white sm:text-3xl md:text-5xl">
                     Le goût d’Abidjan, chez vous.
                 </h2>
-                <p class="mt-5 max-w-md text-white/70">
+                <p class="mt-4 max-w-md text-base text-white/70 sm:mt-5">
                     Boutique, arrivages et courses — tout commence ici.
                 </p>
-                <div class="mt-10 flex flex-wrap justify-center gap-3">
+                <div class="mt-8 flex w-full max-w-sm flex-col gap-3 sm:mt-10 sm:max-w-none sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center">
                     <Link
                         href="/boutique"
-                        class="inline-flex min-h-12 items-center bg-brass px-8 text-sm font-semibold text-forest-950 transition hover:bg-brass-light"
+                        class="inline-flex min-h-12 w-full items-center justify-center bg-brass px-8 text-sm font-semibold text-forest-950 transition hover:bg-brass-light sm:w-auto"
                     >
                         Commencer
                     </Link>
                     <Link
                         href="/courses"
-                        class="inline-flex min-h-12 items-center border border-white/35 px-8 text-sm font-semibold text-white transition hover:bg-white/10"
+                        class="inline-flex min-h-12 w-full items-center justify-center border border-white/35 px-8 text-sm font-semibold text-white transition hover:bg-white/10 sm:w-auto"
                     >
                         Demander une course
                     </Link>

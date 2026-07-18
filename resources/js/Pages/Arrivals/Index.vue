@@ -89,69 +89,82 @@ function submitReserve() {
             alt="Produits frais pour arrivage"
         />
 
-        <section class="bg-stone-soft px-5 py-14 md:px-8 md:py-20">
-            <div class="mx-auto max-w-6xl space-y-10">
+        <section class="bg-stone-soft px-4 py-12 sm:px-5 sm:py-14 md:px-8 md:py-20">
+            <div class="mx-auto max-w-6xl space-y-8 sm:space-y-10">
                 <div
                     v-if="nextArrival"
-                    class="grid gap-6 border border-forest-900/10 bg-white p-8 md:grid-cols-[1.2fr_0.8fr] md:p-10"
+                    class="grid gap-5 border border-forest-900/10 bg-white p-5 sm:gap-6 sm:p-8 md:grid-cols-[1.2fr_0.8fr] md:p-10"
                 >
                     <div>
-                        <p class="text-sm tracking-[0.18em] text-brass uppercase">Prochain cargo ouvert</p>
-                        <h2 class="font-display mt-3 text-3xl text-forest-900">
+                        <p class="text-xs tracking-[0.18em] text-brass uppercase sm:text-sm">
+                            Prochain cargo ouvert
+                        </p>
+                        <h2 class="font-display mt-3 text-2xl text-forest-900 sm:text-3xl">
                             {{ nextArrival.name ?? nextArrival.label }}
                         </h2>
-                        <p class="mt-3 text-ink-muted">
-                            {{ nextArrival.label }} · Arrivée estimée
-                            <span class="font-medium text-forest-900">{{ nextArrival.eta }}</span>
-                        </p>
+                        <div class="mt-3 space-y-1 text-sm text-ink-muted sm:text-base">
+                            <p>{{ nextArrival.label }}</p>
+                            <p>
+                                Arrivée estimée
+                                <span class="font-medium text-forest-900">{{ nextArrival.eta }}</span>
+                            </p>
+                        </div>
                     </div>
-                    <div class="flex items-center md:justify-end">
+                    <div class="flex items-stretch md:items-center md:justify-end">
                         <Link
                             href="/courses"
-                            class="inline-flex min-h-12 items-center bg-forest-900 px-6 text-sm font-semibold text-white transition hover:bg-forest-800"
+                            class="inline-flex min-h-12 w-full items-center justify-center bg-forest-900 px-6 text-sm font-semibold text-white transition hover:bg-forest-800 md:w-auto"
                         >
                             Produit manquant ? Course perso
                         </Link>
                     </div>
                 </div>
 
-                <div v-for="cargo in cargos" :key="cargo.id" class="bg-white">
-                    <div class="border-b border-forest-900/10 px-6 py-5 md:px-8">
-                        <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-                            <div>
-                                <h3 class="font-display text-2xl text-forest-900">{{ cargo.name }}</h3>
-                                <p class="mt-1 text-sm text-ink-muted">
-                                    {{ cargo.route }} · Départ {{ cargo.departure_at ?? '—' }} · ETA
-                                    {{ cargo.estimated_arrival_at ?? '—' }}
-                                </p>
+                <div v-for="cargo in cargos" :key="cargo.id" class="overflow-hidden bg-white">
+                    <div class="border-b border-forest-900/10 px-4 py-5 sm:px-6 md:px-8">
+                        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                            <div class="min-w-0">
+                                <h3 class="font-display text-xl text-forest-900 sm:text-2xl">
+                                    {{ cargo.name }}
+                                </h3>
+                                <div class="mt-2 space-y-1 text-sm text-ink-muted">
+                                    <p>{{ cargo.route }}</p>
+                                    <p>
+                                        Départ {{ cargo.departure_at ?? '—' }} · ETA
+                                        {{ cargo.estimated_arrival_at ?? '—' }}
+                                    </p>
+                                </div>
                             </div>
                             <span class="text-sm font-semibold text-forest-700">{{ cargo.status_label }}</span>
                         </div>
                     </div>
 
                     <div class="divide-y divide-forest-900/10">
-                        <div v-for="item in cargo.items" :key="item.id" class="px-6 py-5 md:px-8">
-                            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                                <div class="flex items-center gap-4">
-                                    <div class="h-16 w-16 shrink-0 overflow-hidden bg-stone-soft">
+                        <div v-for="item in cargo.items" :key="item.id" class="px-4 py-5 sm:px-6 md:px-8">
+                            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div class="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
+                                    <div class="h-14 w-14 shrink-0 overflow-hidden bg-stone-soft sm:h-16 sm:w-16">
                                         <ProductImage
                                             :src="item.image_url"
                                             :alt="item.product_name ?? 'Produit'"
                                             img-class="h-full w-full object-cover"
                                         />
                                     </div>
-                                    <div>
+                                    <div class="min-w-0">
                                         <p class="font-medium text-forest-900">{{ item.product_name }}</p>
                                         <p class="text-xs text-ink-muted">{{ item.category }}</p>
                                         <p class="mt-2 text-sm text-ink-muted">
-                                            Restant {{ item.quantity_remaining }} / {{ item.quantity_available }}
-                                            · {{ item.unit_price }} / {{ item.unit }}
+                                            Restant {{ item.quantity_remaining }} /
+                                            {{ item.quantity_available }}
+                                        </p>
+                                        <p class="text-sm text-ink-muted">
+                                            {{ item.unit_price }} / {{ item.unit }}
                                         </p>
                                     </div>
                                 </div>
                                 <button
                                     type="button"
-                                    class="min-h-10 w-fit bg-brass px-4 text-sm font-semibold text-forest-950 transition hover:bg-brass-light disabled:opacity-40"
+                                    class="min-h-11 w-full bg-brass px-4 text-sm font-semibold text-forest-950 transition hover:bg-brass-light disabled:opacity-40 sm:w-auto"
                                     :disabled="item.quantity_remaining <= 0"
                                     @click="openReserve(item)"
                                 >
@@ -161,7 +174,7 @@ function submitReserve() {
 
                             <form
                                 v-if="activeItemId === item.id"
-                                class="mt-5 grid gap-3 border border-forest-900/10 bg-stone-soft p-4 md:grid-cols-4"
+                                class="mt-5 grid gap-4 border border-forest-900/10 bg-stone-soft p-4 sm:p-5 md:grid-cols-2 lg:grid-cols-4"
                                 @submit.prevent="submitReserve"
                             >
                                 <div>
@@ -170,7 +183,7 @@ function submitReserve() {
                                         v-model="form.guest_name"
                                         type="text"
                                         required
-                                        class="mt-1 h-11 w-full border border-forest-900/15 bg-white px-3 text-sm"
+                                        class="mt-1 h-11 w-full border border-forest-900/15 bg-white px-3"
                                     />
                                     <p v-if="form.errors.guest_name" class="mt-1 text-xs text-red-600">
                                         {{ form.errors.guest_name }}
@@ -182,7 +195,7 @@ function submitReserve() {
                                         v-model="form.guest_email"
                                         type="email"
                                         required
-                                        class="mt-1 h-11 w-full border border-forest-900/15 bg-white px-3 text-sm"
+                                        class="mt-1 h-11 w-full border border-forest-900/15 bg-white px-3"
                                     />
                                     <p v-if="form.errors.guest_email" class="mt-1 text-xs text-red-600">
                                         {{ form.errors.guest_email }}
@@ -196,23 +209,23 @@ function submitReserve() {
                                         min="1"
                                         :max="item.quantity_remaining"
                                         required
-                                        class="mt-1 h-11 w-full border border-forest-900/15 bg-white px-3 text-sm"
+                                        class="mt-1 h-11 w-full border border-forest-900/15 bg-white px-3"
                                     />
                                     <p v-if="form.errors.quantity" class="mt-1 text-xs text-red-600">
                                         {{ form.errors.quantity }}
                                     </p>
                                 </div>
-                                <div class="flex items-end gap-2">
+                                <div class="flex flex-col gap-2 sm:flex-row sm:items-end lg:flex-col xl:flex-row">
                                     <button
                                         type="submit"
-                                        class="h-11 flex-1 bg-forest-900 px-4 text-sm font-semibold text-white disabled:opacity-50"
+                                        class="min-h-11 flex-1 bg-forest-900 px-4 text-sm font-semibold text-white disabled:opacity-50"
                                         :disabled="form.processing"
                                     >
                                         Confirmer
                                     </button>
                                     <button
                                         type="button"
-                                        class="h-11 px-3 text-sm text-ink-muted"
+                                        class="min-h-11 px-4 text-sm font-medium text-ink-muted transition hover:text-forest-900"
                                         @click="closeReserve"
                                     >
                                         Annuler
@@ -220,7 +233,7 @@ function submitReserve() {
                                 </div>
                                 <p
                                     v-if="form.errors.cargo_item_id"
-                                    class="md:col-span-4 text-xs text-red-600"
+                                    class="text-xs text-red-600 md:col-span-2 lg:col-span-4"
                                 >
                                     {{ form.errors.cargo_item_id }}
                                 </p>
@@ -231,7 +244,7 @@ function submitReserve() {
 
                 <div
                     v-if="!cargos.length"
-                    class="border border-dashed border-forest-900/20 bg-white p-10 text-center text-ink-muted"
+                    class="border border-dashed border-forest-900/20 bg-white p-8 text-center text-ink-muted sm:p-10"
                 >
                     Aucun cargo ouvert aux réservations pour le moment.
                 </div>

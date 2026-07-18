@@ -54,7 +54,8 @@ watch(
     <Teleport to="body">
         <div
             v-if="visible && message"
-            class="pointer-events-none fixed inset-x-0 top-0 z-[60] flex justify-center px-4 pt-[5.5rem] sm:justify-end sm:px-6"
+            class="pointer-events-none fixed inset-x-0 top-0 z-[60] flex justify-center px-4 sm:justify-end sm:px-6"
+            :style="{ paddingTop: 'calc(var(--header-offset) + 0.5rem)' }"
             role="status"
             aria-live="polite"
         >
@@ -105,7 +106,7 @@ watch(
 
                 <button
                     type="button"
-                    class="shrink-0 p-1 text-ink-muted transition hover:text-forest-900"
+                    class="inline-flex h-11 w-11 shrink-0 items-center justify-center text-ink-muted transition hover:text-forest-900"
                     aria-label="Fermer la notification"
                     @click="dismiss"
                 >

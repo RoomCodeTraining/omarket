@@ -35,30 +35,35 @@ function removeItem(productId: number) {
     <AppLayout>
         <Head title="Panier" />
 
-        <section class="bg-stone-soft px-5 pt-28 pb-16 md:px-8 md:pb-24">
+        <section
+            class="bg-stone-soft px-4 pb-16 sm:px-5 md:px-8 md:pb-24"
+            :style="{ paddingTop: 'calc(var(--header-offset) + 1.5rem)' }"
+        >
             <div class="mx-auto max-w-4xl">
-                <h1 class="font-display text-4xl text-forest-900">Votre panier</h1>
+                <h1 class="font-display text-3xl text-forest-900 sm:text-4xl">Votre panier</h1>
                 <p class="mt-2 text-ink-muted">{{ count }} article{{ count > 1 ? 's' : '' }}</p>
 
-                <div v-if="items.length" class="mt-10 space-y-4">
+                <div v-if="items.length" class="mt-8 space-y-4 sm:mt-10">
                     <article
                         v-for="item in items"
                         :key="item.product_id"
-                        class="flex flex-col gap-4 border border-forest-900/10 bg-white p-5 md:flex-row md:items-center md:justify-between"
+                        class="border border-forest-900/10 bg-white p-4 sm:p-5"
                     >
-                        <div class="flex items-center gap-4">
-                            <div class="h-20 w-20 shrink-0 overflow-hidden bg-stone-soft">
+                        <div class="flex gap-3 sm:gap-4">
+                            <div class="h-16 w-16 shrink-0 overflow-hidden bg-stone-soft sm:h-20 sm:w-20">
                                 <ProductImage
                                     :src="item.image_url"
                                     :alt="item.name"
                                     img-class="h-full w-full object-cover"
                                 />
                             </div>
-                            <div>
+                            <div class="min-w-0 flex-1">
                                 <p class="text-xs tracking-wide text-ink-muted uppercase">
                                     {{ item.category }}
                                 </p>
-                                <h2 class="font-display mt-1 text-2xl text-forest-900">{{ item.name }}</h2>
+                                <h2 class="font-display mt-1 text-xl text-forest-900 sm:text-2xl">
+                                    {{ item.name }}
+                                </h2>
                                 <p class="mt-1 text-sm text-ink-muted">
                                     {{ item.price }} / {{ item.unit }}
                                     <span v-if="!item.in_stock" class="text-brass"> · stock insuffisant</span>
@@ -66,28 +71,30 @@ function removeItem(productId: number) {
                             </div>
                         </div>
 
-                        <div class="flex flex-wrap items-center gap-3">
-                            <label class="sr-only" :for="`qty-${item.product_id}`">Quantité</label>
-                            <input
-                                :id="`qty-${item.product_id}`"
-                                type="number"
-                                min="1"
-                                :max="item.stock_quantity"
-                                class="h-11 w-20 border border-forest-900/20 bg-stone-soft px-3 text-center"
-                                :value="item.quantity"
-                                @change="
-                                    updateQuantity(
-                                        item.product_id,
-                                        Number(($event.target as HTMLInputElement).value),
-                                    )
-                                "
-                            />
-                            <p class="min-w-24 text-right font-semibold text-forest-900">
-                                {{ item.line_total }}
-                            </p>
+                        <div
+                            class="mt-4 flex flex-col gap-3 border-t border-forest-900/10 pt-4 sm:flex-row sm:items-center sm:justify-between"
+                        >
+                            <div class="flex items-center gap-3">
+                                <label class="sr-only" :for="`qty-${item.product_id}`">Quantité</label>
+                                <input
+                                    :id="`qty-${item.product_id}`"
+                                    type="number"
+                                    min="1"
+                                    :max="item.stock_quantity"
+                                    class="h-11 w-20 border border-forest-900/20 bg-stone-soft px-3 text-center"
+                                    :value="item.quantity"
+                                    @change="
+                                        updateQuantity(
+                                            item.product_id,
+                                            Number(($event.target as HTMLInputElement).value),
+                                        )
+                                    "
+                                />
+                                <p class="font-semibold text-forest-900">{{ item.line_total }}</p>
+                            </div>
                             <button
                                 type="button"
-                                class="text-sm font-medium text-ink-muted underline-offset-2 hover:text-forest-900 hover:underline"
+                                class="inline-flex min-h-11 items-center justify-center px-3 text-sm font-medium text-ink-muted transition hover:text-forest-900"
                                 @click="removeItem(item.product_id)"
                             >
                                 Retirer
@@ -95,23 +102,28 @@ function removeItem(productId: number) {
                         </div>
                     </article>
 
-                    <div class="flex flex-col items-start justify-between gap-4 border border-forest-900/10 bg-white p-6 md:flex-row md:items-center">
+                    <div
+                        class="flex flex-col gap-4 border border-forest-900/10 bg-white p-5 sm:p-6 md:flex-row md:items-center md:justify-between"
+                    >
                         <div>
                             <p class="text-sm text-ink-muted">Total estimé</p>
-                            <p class="font-display text-3xl text-forest-900">{{ total }}</p>
+                            <p class="font-display text-2xl text-forest-900 sm:text-3xl">{{ total }}</p>
                         </div>
-                        <p class="max-w-sm text-sm text-ink-muted">
+                        <p class="max-w-sm text-sm leading-relaxed text-ink-muted">
                             Le paiement sécurisé arrive à la prochaine étape. Votre panier est déjà
                             enregistré pour cette session.
                         </p>
                     </div>
                 </div>
 
-                <div v-else class="mt-12 border border-dashed border-forest-900/20 bg-white p-10 text-center">
+                <div
+                    v-else
+                    class="mt-10 border border-dashed border-forest-900/20 bg-white p-8 text-center sm:mt-12 sm:p-10"
+                >
                     <p class="text-ink-muted">Votre panier est vide.</p>
                     <Link
                         href="/boutique"
-                        class="mt-6 inline-flex min-h-12 items-center bg-forest-900 px-6 text-sm font-semibold text-white"
+                        class="mt-6 inline-flex min-h-12 w-full items-center justify-center bg-forest-900 px-6 text-sm font-semibold text-white sm:w-auto"
                     >
                         Continuer vos courses
                     </Link>

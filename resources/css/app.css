@@ -135,14 +135,50 @@
 }
 
 @layer base {
+    :root {
+        --header-offset: calc(4.25rem + env(safe-area-inset-top, 0px));
+    }
+
+    @media (min-width: 768px) {
+        :root {
+            --header-offset: calc(4.75rem + env(safe-area-inset-top, 0px));
+        }
+    }
+
     html {
         scroll-behavior: smooth;
+        overflow-x: clip;
+    }
+
+    body {
+        overflow-x: clip;
+        padding-left: env(safe-area-inset-left, 0px);
+        padding-right: env(safe-area-inset-right, 0px);
+    }
+
+    body.nav-locked {
+        overflow: hidden;
+    }
+
+    /* Avoid iOS zoom on focus; keep compact type from md up */
+    input,
+    select,
+    textarea {
+        font-size: 1rem;
+    }
+
+    @media (min-width: 768px) {
+        input,
+        select,
+        textarea {
+            font-size: 0.875rem;
+        }
     }
 
     #parcours,
     #arrivages,
     #courses {
-        scroll-margin-top: 5.5rem;
+        scroll-margin-top: var(--header-offset);
     }
 }
 

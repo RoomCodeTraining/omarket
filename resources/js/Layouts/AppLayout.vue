@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, usePage } from '@inertiajs/vue3';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import CartNavButton from '@/Components/Layout/CartNavButton.vue';
 import FlashMessage from '@/Components/Layout/FlashMessage.vue';
 import SiteFooter from '@/Components/Layout/SiteFooter.vue';
@@ -31,13 +31,31 @@ function closeMobile() {
     mobileOpen.value = false;
 }
 
+function onKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape' && mobileOpen.value) {
+        closeMobile();
+    }
+}
+
+watch(mobileOpen, (open) => {
+    document.body.classList.toggle('nav-locked', open);
+});
+
+watch(
+    () => page.url,
+    () => closeMobile(),
+);
+
 onMounted(() => {
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('keydown', onKeydown);
 });
 
 onUnmounted(() => {
     window.removeEventListener('scroll', onScroll);
+    window.removeEventListener('keydown', onKeydown);
+    document.body.classList.remove('nav-locked');
 });
 </script>
 
@@ -57,11 +75,12 @@ onUnmounted(() => {
                     ? 'border-white/15 bg-forest-950/80 shadow-[0_8px_30px_rgba(0,0,0,0.25)] backdrop-blur-md'
                     : 'border-forest-900/10 bg-stone-soft/95 shadow-sm backdrop-blur-md'
             "
+            :style="{ paddingTop: 'env(safe-area-inset-top, 0px)' }"
         >
-            <div class="mx-auto flex max-w-6xl items-center justify-between gap-6 px-5 py-3.5 md:px-8 md:py-4">
+            <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3.5 sm:gap-6 sm:px-5 md:px-8 md:py-4">
                 <Link
                     href="/"
-                    class="font-display text-xl tracking-tight transition-colors md:text-2xl"
+                    class="font-display min-w-0 truncate text-lg tracking-tight transition-colors sm:text-xl md:text-2xl"
                     :class="useDarkNav ? 'text-white' : 'text-forest-900'"
                     @click="closeMobile"
                 >
@@ -86,7 +105,7 @@ onUnmounted(() => {
                     </Link>
                 </nav>
 
-                <div class="flex items-center gap-2 sm:gap-3">
+                <div class="flex shrink-0 items-center gap-2 sm:gap-3">
                     <CartNavButton :dark="useDarkNav" @click="closeMobile" />
                     <Link
                         href="/boutique"
@@ -116,7 +135,7 @@ onUnmounted(() => {
             <div
                 v-show="mobileOpen"
                 id="menu-mobile"
-                class="border-t border-forest-900/10 bg-stone-soft px-5 py-4 md:hidden"
+                class="border-t border-forest-900/10 bg-stone-soft px-4 py-4 sm:px-5 md:hidden"
             >
                 <nav class="flex flex-col gap-1" aria-label="Navigation mobile">
                     <Link
@@ -152,6 +171,14 @@ onUnmounted(() => {
                 </nav>
             </div>
         </header>
+
+        <button
+            v-if="mobileOpen"
+            type="button"
+            class="fixed inset-0 z-30 bg-forest-950/40 md:hidden"
+            aria-label="Fermer le menu"
+            @click="closeMobile"
+        />
 
         <FlashMessage />
 

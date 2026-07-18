@@ -11,8 +11,8 @@ const appName = computed(() => (page.props.app as { name?: string } | undefined)
 <template>
     <footer class="border-t border-white/10 bg-forest-950 text-stone">
         <div class="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-20">
-            <div class="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
-                <div>
+            <div class="grid gap-10 sm:grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr_1fr] md:gap-12">
+                <div class="sm:col-span-2 md:col-span-1">
                     <Link href="/" class="font-display text-2xl text-white transition hover:text-brass-light">
                         {{ appName }}
                     </Link>
@@ -22,7 +22,7 @@ const appName = computed(() => (page.props.app as { name?: string } | undefined)
                     </p>
                     <a
                         href="mailto:hello@ohefe.market"
-                        class="mt-6 inline-flex text-sm font-medium text-brass-light transition hover:text-white"
+                        class="mt-6 inline-flex min-h-11 items-center text-sm font-medium text-brass-light transition hover:text-white"
                     >
                         hello@ohefe.market
                     </a>
@@ -30,37 +30,37 @@ const appName = computed(() => (page.props.app as { name?: string } | undefined)
 
                 <div>
                     <p class="text-sm font-semibold tracking-wide text-white">Explorer</p>
-                    <ul class="mt-4 space-y-3 text-sm text-white/55">
+                    <ul class="mt-4 space-y-1 text-sm text-white/55">
                         <li>
-                            <Link href="/panier" class="transition hover:text-white">Panier</Link>
+                            <Link href="/panier" class="inline-flex min-h-10 items-center transition hover:text-white">Panier</Link>
                         </li>
                         <li>
-                            <Link href="/boutique" class="transition hover:text-white">Boutique</Link>
+                            <Link href="/boutique" class="inline-flex min-h-10 items-center transition hover:text-white">Boutique</Link>
                         </li>
                         <li>
-                            <Link href="/arrivages" class="transition hover:text-white">Arrivages</Link>
+                            <Link href="/arrivages" class="inline-flex min-h-10 items-center transition hover:text-white">Arrivages</Link>
                         </li>
                         <li>
-                            <Link href="/courses" class="transition hover:text-white">Courses</Link>
+                            <Link href="/courses" class="inline-flex min-h-10 items-center transition hover:text-white">Courses</Link>
                         </li>
                     </ul>
                 </div>
 
                 <div>
                     <p class="text-sm font-semibold tracking-wide text-white">Parcours</p>
-                    <ul class="mt-4 space-y-3 text-sm text-white/55">
+                    <ul class="mt-4 space-y-1 text-sm text-white/55">
                         <li>
-                            <Link href="/#parcours" class="transition hover:text-white">
+                            <Link href="/#parcours" class="inline-flex min-h-10 items-center transition hover:text-white">
                                 Comment commander
                             </Link>
                         </li>
                         <li>
-                            <Link href="/arrivages" class="transition hover:text-white">
+                            <Link href="/arrivages" class="inline-flex min-h-10 items-center transition hover:text-white">
                                 Réserver un cargo
                             </Link>
                         </li>
                         <li>
-                            <Link href="/courses" class="transition hover:text-white">
+                            <Link href="/courses" class="inline-flex min-h-10 items-center transition hover:text-white">
                                 Demander un devis
                             </Link>
                         </li>
@@ -73,7 +73,7 @@ const appName = computed(() => (page.props.app as { name?: string } | undefined)
                         <li>Canada · Diaspora & familles</li>
                         <li>Côte d’Ivoire · Approvisionnement</li>
                         <li>
-                            <a href="mailto:hello@ohefe.market" class="transition hover:text-white">
+                            <a href="mailto:hello@ohefe.market" class="inline-flex min-h-10 items-center transition hover:text-white">
                                 Écrire à l’équipe
                             </a>
                         </li>

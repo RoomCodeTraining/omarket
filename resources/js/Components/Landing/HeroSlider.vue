@@ -155,7 +155,7 @@ defineExpose({ current, next, prev });
                 <img
                     :src="slide.jpg"
                     :alt="slide.alt"
-                    class="h-full w-full object-cover object-[center_28%] transition-transform duration-[7000ms] ease-out will-change-transform"
+                    class="h-full w-full object-cover object-center transition-transform duration-[7000ms] ease-out will-change-transform md:object-[center_28%]"
                     :class="index === active ? 'scale-[1.06]' : 'scale-100'"
                     :fetchpriority="index === 0 ? 'high' : 'low'"
                     :loading="index === 0 ? 'eager' : 'lazy'"
@@ -187,27 +187,29 @@ defineExpose({ current, next, prev });
             <span aria-hidden="true">→</span>
         </button>
 
-        <div class="absolute inset-x-0 bottom-0 z-10 flex gap-1.5 px-5 pb-5 md:px-8">
+        <div class="absolute inset-x-0 bottom-0 z-10 flex gap-1.5 px-4 pb-3 sm:px-5 sm:pb-4 md:px-8 md:pb-5">
             <button
                 v-for="(slide, index) in slides"
                 :key="`dot-${slide.id}`"
                 type="button"
-                class="relative h-1 flex-1 overflow-hidden bg-white/20"
+                class="relative flex min-h-8 flex-1 items-center sm:min-h-11"
                 :aria-label="`Aller à l’image ${index + 1}`"
                 :aria-current="index === active ? 'true' : undefined"
                 @click="setActive(index)"
             >
-                <span
-                    class="absolute inset-y-0 left-0 bg-brass transition-[width] duration-75 ease-linear"
-                    :style="{
-                        width:
-                            index < active
-                                ? '100%'
-                                : index === active
-                                  ? `${progress}%`
-                                  : '0%',
-                    }"
-                />
+                <span class="relative h-0.5 w-full overflow-hidden bg-white/20 sm:h-1">
+                    <span
+                        class="absolute inset-y-0 left-0 bg-brass transition-[width] duration-75 ease-linear"
+                        :style="{
+                            width:
+                                index < active
+                                    ? '100%'
+                                    : index === active
+                                      ? `${progress}%`
+                                      : '0%',
+                        }"
+                    />
+                </span>
             </button>
         </div>
     </div>
