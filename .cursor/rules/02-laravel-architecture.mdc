@@ -1,0 +1,101 @@
+---
+description: Architecture Laravel — Actions, Requests, Policies, Events, Jobs
+globs: app/**/*.php
+alwaysApply: false
+---
+
+# Architecture Laravel
+
+## Principes
+
+- Controllers **fins** : HTTP in/out uniquement.
+- Logique métier dans des **Actions** (préféré) ou Services ciblés.
+- Validation dans des **Form Requests**.
+- Autorisation dans des **Policies** (et Gates si transversal).
+- Effets de bord via **Events / Listeners**.
+- Traitements lourds / async via **Jobs**.
+- Communications utilisateur via **Notifications**.
+- Statuts / types métier via **Enums** PHP backed.
+
+## Structure cible `app/`
+
+```
+app/
+  Actions/          # Une classe = une intention métier
+  Enums/
+  Events/
+  Listeners/
+  Jobs/
+  Notifications/
+  Policies/
+  Http/
+    Controllers/
+    Middleware/
+    Requests/
+  Models/
+  Providers/
+  Support/          # Helpers purs, value objects si besoin
+```
+
+Filament reste sous `app/Filament/`.
+
+## Actions
+
+```php
+// ✅ GOOD
+final class ConfirmOrderPayment
+{
+    public function handle(Order $order): Order
+    {
+        // logique + events
+        return $order;
+    }
+}
+
+// Controller
+public function store(ConfirmOrderPaymentRequest $request, ConfirmOrderPayment $action)
+{
+    $order = $action->handle(...);
+
+    return redirect()->route('orders.show', $order);
+}
+```
+
+- Nommer par intention : `ReserveCargoProduct`, `AcceptQuote`, `MarkOrderAsShipped`.
+- Une Action = un cas d’usage. Pas de « God Service ».
+- Transactions DB dans l’Action quand plusieurs écritures.
+
+## Models
+
+- Relations, casts, scopes simples, accessors légers.
+- **Pas** de workflows métier longs dans le Model.
+- Prefer enums castés : `'status' => OrderStatus::class`.
+
+## Controllers
+
+```php
+// ❌ BAD — logique dans le controller
+public function store(Request $request) {
+    $order = Order::create(...);
+    $order->stock->decrement();
+    Mail::to(...)->send(...);
+}
+
+// ✅ GOOD — déléguer
+public function store(StoreOrderRequest $request, PlaceOrder $action) {
+    $order = $action->handle($request->user(), $request->validated());
+    return to_route('orders.show', $order);
+}
+```
+
+## Events
+
+Déclencher sur transitions métier (statut commande, devis accepté, stock bas).  
+Les Listeners envoient notifications / jobs — pas l’inverse dans le Controller.
+
+## Interdit
+
+- Fat controllers / fat models.
+- Validation « à la main » dans le controller si un Form Request suffit.
+- Bypass Policy avec des `if ($user->is_admin)` éparpillés.
+- Duplication de la même règle métier dans Filament + HTTP : extraire une Action partagée.

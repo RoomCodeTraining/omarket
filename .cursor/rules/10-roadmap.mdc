@@ -1,0 +1,61 @@
+---
+description: Roadmap d’implémentation par phases — ordre des modules
+alwaysApply: true
+---
+
+# Roadmap
+
+## Phase 0 — Fondations (en cours / prochaine)
+
+- Règles Cursor complètes
+- Alignement DDEV + MariaDB
+- Inertia + Vue 3 + TypeScript
+- Filament admin
+- Pest + Pint
+- Structure `app/Actions`, `Enums`, etc.
+
+## Phase 1 — Identité & accès
+
+- Branding `.env` / config (`APP_NAME=Ôhéfê Market`)
+- Auth client (Inertia)
+- Users staff + panel Filament sécurisé
+- Roles/permissions minimales (admin vs client)
+
+## Phase 2 — Catalogue
+
+- Categories, Products, images, slugs
+- Stock de base
+- CRUD Filament
+- Listing / détail boutique Inertia
+
+## Phase 3 — Panier & commandes stock
+
+- Cart session ou persisté
+- Checkout + paiement (provider à choisir)
+- Order + OrderItems
+- Statuts + notifications de base
+
+## Phase 4 — Arrivages
+
+- Cargo + CargoItems
+- Réservations pré-arrivée
+- UI arrivages + admin
+
+## Phase 5 — Courses & devis
+
+- CustomRequest / Quote workflow
+- AcceptQuote → Order
+- Notifications devis
+
+## Phase 6 — Expérience & scale
+
+- Suivi commande riche (timeline)
+- Stats Filament
+- Perf, caches ciblés, files d’attente prod
+- Préparer multi-vendeurs (sans l’implémenter trop tôt)
+
+## Règles d’exécution
+
+- Ne pas sauter une phase fondatrice pour « coder le paiement ».
+- Chaque phase livrable doit être testable.
+- Pas de marketplace multi-vendeurs avant la stabilité mono-vendeur.

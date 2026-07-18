@@ -1,0 +1,53 @@
+---
+description: Standards de code PHP, TypeScript et conventions de nommage
+alwaysApply: true
+---
+
+# Coding standards
+
+## Langue
+
+- Code (classes, méthodes, variables, routes name) : **anglais**.
+- UI utilisateur / Filament labels / notifications client : **français**.
+- Commentaires : uniquement si nécessaires ; en anglais, courts.
+
+## PHP
+
+- `declare(strict_types=1);` dans les nouveaux fichiers PHP applicatifs quand cohérent avec le fichier voisin.
+- Typer paramètres, retours, propriétés.
+- Classes `final` pour Actions / Jobs / Listeners sauf besoin d’extension.
+- Enums backed pour tout statut métier.
+- Suivre **Laravel Pint** (ne pas reformater tout le repo hors besoin).
+- Préférer les APIs Laravel idiomatiques (Collections, Eloquent, Containers).
+
+## TypeScript / Vue
+
+- `strict` TS activé.
+- Éviter `any`.
+- Composants et fichiers en PascalCase (`ProductCard.vue`).
+- Composables : `useX.ts`.
+
+## Nommage
+
+| Type | Exemple |
+|------|---------|
+| Action | `ReserveCargoItem` |
+| Enum | `OrderStatus::AtSea` |
+| Form Request | `StoreProductRequest` |
+| Policy | `OrderPolicy` |
+| Notification | `OrderStatusUpdated` |
+| Job | `SendOrderStatusNotification` |
+| Route name | `orders.show`, `admin.products.index` |
+
+## Qualité
+
+- Pas de code mort / imports inutiles.
+- Pas de `dd()`, `dump()`, `console.log` laissés en prod.
+- Secrets uniquement via `.env` / config.
+
+## Interdit
+
+- Logique métier dans Blade (hors Filament views ponctuelles).
+- Copier-coller de blocs > ~15 lignes : extraire.
+- Contourner Pint / linters sans raison.
+- Commit de `.env`, clés, dumps DB.

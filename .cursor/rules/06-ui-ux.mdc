@@ -1,0 +1,40 @@
+---
+description: Direction UI/UX premium du storefront Ôhéfê Market
+globs: "{resources/js/**/*.{vue,ts,css},resources/css/**/*.css,resources/views/**/*.blade.php}"
+alwaysApply: false
+---
+
+# UI / UX
+
+## Positionnement
+
+Image **haut de gamme**, sobre, moderne, rapide, responsive.  
+Le site doit inspirer confiance (diaspora, familles, pros restauration).
+
+## Principes
+
+- Une page = un objectif clair (acheter, réserver, suivre, demander une course).
+- Hiérarchie visuelle forte : marque / produit d’abord, chrome ensuite.
+- Feedback immédiat : états loading Inertia, erreurs de formulaire, stock insuffisant.
+- Mobile-first : panier, checkout et suivi commande impeccables sur petit écran.
+- Accessibilité de base : contrastes, labels, focus, textes de boutons explicites.
+
+## Contenu métier à rendre évident
+
+- Distinction **stock disponible** vs **réservation cargo** (dates d’arrivée).
+- Statut de commande lisible (timeline claire).
+- Course personnalisée : parcours simple demande → devis → acceptation.
+
+## Design system (évolution)
+
+- Tokens Tailwind (`@theme`) pour couleurs / typo de marque.
+- Composants réutilisables (`Button`, `ProductCard`, `StatusBadge`) dans `Components/`.
+- Pas de framework UI lourd sauf décision explicite documentée.
+
+## Interdit
+
+- Surcharger le premier viewport de stats, badges flottants, promos empilées.
+- Parcours checkout confus ou multi-étapes inutiles.
+- Copier un look générique « template e-commerce » sans identité.
+- Casser le responsive pour un effet desktop-only.
+- Emojis décoratifs dans l’UI produit.

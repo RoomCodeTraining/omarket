@@ -1,0 +1,51 @@
+---
+description: Règles métier e-commerce, cargos, réservations, courses et commandes
+alwaysApply: true
+---
+
+# Règles métier Ôhéfê Market
+
+## Catalogue & stock
+
+- Un produit peut être : **disponible** (stock local), **sur arrivage** (lié à un cargo), ou **indisponible** (orienter vers course personnalisée).
+- Ne jamais vendre plus que le stock disponible : vérifier et décrémenter dans une Action transactionnelle.
+- Les quantités négatives sont interdites.
+
+## Cargos & réservations
+
+- Un cargo a au minimum : date de départ, ETA Canada, statut, lignes produits + quantités.
+- Réserver = allouer une quantité sur un cargo **avant** arrivée ; distinct d’une commande stock local.
+- Une réservation confirmée (payée selon règles checkout) doit bloquer la quantité.
+- À l’arrivée, le flux fait basculer vers disponibilité / livraison selon le processus défini.
+
+## Courses personnalisées & devis
+
+1. Client crée une demande (description, quantité, contraintes).
+2. Admin établit un **devis** (prix, délais, conditions).
+3. Client **accepte** ou refuse.
+4. Acceptation → création de **commande** liée (Action unique `AcceptQuote`).
+
+Ne jamais créer une commande « à la main » depuis l’UI sans passer par le workflow devis si le canal est « course ».
+
+## Commandes & paiements
+
+- Une commande a un statut Enum unique ; transitions contrôlées (pas de saut arbitraire sauf admin outillé + Action).
+- Paiement confirmé avant préparation (sauf exception métier documentée).
+- Timeline client alignée sur les statuts de `00-project-overview`.
+
+## Notifications
+
+- Chaque transition de statut significative → Event → Notification (mail a minima).
+- Contenu en français, clair, avec référence commande.
+
+## Admin vs client
+
+- Le client ne modifie jamais stocks, cargos, prix de revient, devis non publiés.
+- L’admin opère via Filament + Actions partagées.
+
+## Interdit
+
+- Contourner les contrôles de stock « temporairement ».
+- Mélanger dans une même ligne panier des règles incompatibles sans modèle clair (stock vs cargo).
+- Changer un statut sans Event/Notification quand la règle le prévoit.
+- Encoder des prix / frais magiques dans les vues.

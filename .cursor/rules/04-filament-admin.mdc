@@ -1,0 +1,45 @@
+---
+description: Administration Filament — panels, resources, shared Actions
+globs: app/Filament/**/*.php
+alwaysApply: false
+---
+
+# Administration Filament
+
+## Rôle
+
+Filament est **uniquement** l’espace administrateur (gestion catalogue, stocks, cargos, commandes, clients, courses, stats).
+
+Le storefront client reste Inertia/Vue.
+
+## Conventions
+
+- Panel principal : `/admin` (ou path configuré une seule fois).
+- Resources / Pages / Widgets sous `app/Filament/`.
+- Forms et Tables Filament pour le CRUD admin.
+- **Réutiliser les Actions métier** (`app/Actions`) depuis les Resources / Actions Filament.
+
+```php
+// ✅ GOOD — Filament déclenche la même Action que le HTTP
+Forms\Components\Actions\Action::make('acceptQuote')
+    ->action(fn (Quote $record, AcceptQuote $accept) => $accept->handle($record));
+```
+
+## Autorisation
+
+- Restreindre l’accès panel aux utilisateurs staff (role/flag dédié).
+- Policies Eloquent applicables aussi depuis Filament quand pertinent.
+- Ne jamais exposer des opérations admin via des routes Inertia publiques.
+
+## UX admin
+
+- Labels en français (métier ivoirien / Canada).
+- Filtres et colonnes utiles dès le premier écran (statut, dates cargo, client).
+- Éviter les écrans surchargés : une Resource = un agrégat clair.
+
+## Interdit
+
+- Dupliquer la logique métier dans les callbacks Filament.
+- Construire un second admin en Vue « parce que plus joli ».
+- Modifier directement le stock / statut commande dans un `afterStateUpdated` sans Action testable.
+- Installer des plugins Filament non nécessaires au besoin immédiat.

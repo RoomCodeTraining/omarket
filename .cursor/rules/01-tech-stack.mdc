@@ -1,0 +1,77 @@
+---
+description: Stack technique officielle, versions et packages autorisés
+alwaysApply: true
+---
+
+# Stack technique
+
+## Environnement
+
+- **Runtime local :** DDEV (`omarket`, type Laravel, PHP 8.3, nginx-fpm)
+- **PHP :** ^8.3 (aligné DDEV)
+- **Base de données :** MariaDB 10.11 via DDEV (compatible MySQL ; driver Laravel `mysql`)
+- **URL locale :** `https://omarket.ddev.site` (si ports 80/443 occupés, DDEV peut exposer un port alternatif — voir `ddev describe`)
+
+Toujours exécuter Composer/Artisan/npm via DDEV quand possible :
+
+```bash
+ddev composer ...
+ddev artisan ...
+ddev npm ...
+ddev exec php artisan ...
+```
+
+## Backend
+
+| Technologie | Usage |
+|-------------|--------|
+| Laravel 13 | Framework |
+| MySQL/MariaDB | Persistance |
+| Filament 5 | Administration |
+| Laravel Notifications | Emails / canaux |
+| Laravel Queues | Jobs asynchrones |
+| Pest | Tests |
+| Laravel Pint | Style PHP |
+
+## Frontend client
+
+| Technologie | Usage |
+|-------------|--------|
+| Vue 3 | UI client |
+| Inertia.js | Bridge Laravel ↔ Vue |
+| TypeScript | Typage frontend |
+| Tailwind CSS 4 | Styles |
+| Vite 8 | Bundler |
+
+## Décisions
+
+- **Client = Inertia + Vue.** Pas de SPA API séparée pour le storefront.
+- **Admin = Filament (Livewire).** Ne pas reconstruire l’admin en Vue.
+- **Auth admin** via Filament ; **auth client** via sessions Laravel + Inertia.
+- **Pas de React / Alpine pour le storefront** sauf besoin Filament interne.
+
+## Packages à privilégier
+
+- Natifs Laravel / Filament / Inertia / Vue.
+- Spatie uniquement si un besoin clair n’est pas couvert nativement.
+
+## Interdit
+
+- Ajouter un framework frontend concurrent (React, Nuxt, Livewire côté boutique).
+- Contourner DDEV avec des versions PHP/DB locales divergentes pour le travail projet.
+- Introduire Redis/Elasticsearch/microservices sans besoin métier prouvé.
+- Utiliser SQLite en développement une fois MariaDB DDEV configuré (sauf tests PHPUnit/Pest en mémoire).
+
+## Versions installées (référence)
+
+- Laravel 13.x / PHP 8.3 (DDEV)
+- Filament **5.7**
+- Inertia Laravel **3.1** + `@inertiajs/vue3` **3.x** + Vue **3.5**
+- Pest **4.7**
+- Vite **8** + Tailwind CSS **4** + TypeScript
+
+## Configuration Vite
+
+Entrées : `resources/js/app.ts` + `resources/css/app.css`.  
+Plugins : Vue + Tailwind v4 (`@tailwindcss/vite`). Alias `@` → `resources/js`.  
+Ne pas réintroduire `tailwind.config.js` sauf nécessité.

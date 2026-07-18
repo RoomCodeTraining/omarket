@@ -1,0 +1,43 @@
+---
+description: Modélisation base de données, migrations et conventions Eloquent
+globs: "{database/**/*.php,app/Models/**/*.php,app/Enums/**/*.php}"
+alwaysApply: false
+---
+
+# Base de données
+
+## Moteur
+
+- Dev : MariaDB 10.11 (DDEV), connexion Laravel `mysql`.
+- Tests : SQLite `:memory:` acceptable (phpunit/pest).
+- Production : MySQL/MariaDB compatible.
+
+## Conventions de schéma
+
+- Tables : `snake_case` pluriel (`products`, `order_items`).
+- Clés étrangères : `{model}_id` + contraintes FK.
+- Timestamps `created_at` / `updated_at` sauf tables pivot purement techniques.
+- Soft deletes uniquement si besoin métier de restauration / historique.
+- Montants : entiers en **cents CAD** (`integer`) ou `decimal(12,2)` — **choisir une convention et la documenter** ; préférer cents pour éviter les float.
+- Devises : CAD par défaut ; ne pas hardcoder des conversions magiques.
+- Statuts : string/enum DB aligné sur Enum PHP (`OrderStatus`, `CargoStatus`, `QuoteStatus`).
+
+## Migrations
+
+- Une migration = un changement cohérent.
+- Jamais modifier une migration déjà déployée en prod : en créer une nouvelle.
+- Indexer les colonnes filtrées (statut, `user_id`, `cargo_id`, slugs).
+- Quantités stock / réservation : types entiers ; prévoir l’intégrité (check ou logique Action).
+
+## Eloquent
+
+- Relations explicites (`hasMany`, `belongsTo`, `belongsToMany`).
+- Casts pour enums, dates, booléens, money si value object.
+- Factories + Seeders pour données de démo réalistes (produits ivoiriens).
+
+## Interdit
+
+- Logique métier lourde dans les migrations.
+- Colonnes JSON fourre-tout pour des structures stables (préférer tables).
+- Supprimer des FK « pour aller plus vite ».
+- Stocker des prix en float PHP non maîtrisés.

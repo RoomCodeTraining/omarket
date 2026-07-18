@@ -1,0 +1,80 @@
+---
+description: Vision globale, modules métier et priorités du projet Ôhéfê Market
+alwaysApply: true
+---
+
+# Ôhéfê Market — Vision du projet
+
+## Présentation
+
+Ôhéfê Market est une plateforme e-commerce de vente, réservation et importation de produits ivoiriens vers le Canada.
+
+Les clients peuvent :
+
+- commander des produits disponibles en stock ;
+- réserver des produits d’un cargo avant son arrivée ;
+- demander une course personnalisée si le produit est absent ;
+- suivre leur commande jusqu’à la livraison.
+
+Concevoir chaque feature comme un produit SaaS multi-années, pas comme un MVP jetable.
+
+## Vision long terme
+
+Faciliter dès aujourd’hui l’évolution vers :
+
+- marketplace multi-vendeurs ;
+- application mobile ;
+- fidélité et abonnements ;
+- plateforme logistique complète.
+
+Toute décision technique doit rester compatible avec ces évolutions (IDs stables, enums, events, frontières claires).
+
+## Public cible
+
+Diaspora ivoirienne, familles africaines au Canada, restaurants, épiceries africaines, amateurs de produits authentiques.
+
+## Philosophie
+
+Simplicité, élégance, rapidité, sécurité, évolutivité, UX premium.
+
+**Règle d’or :** la simplicité prime toujours sur la complexité.
+
+## Modules principaux
+
+| Module | Rôle |
+|--------|------|
+| Boutique | Catalogue, catégories, recherche, filtres, panier, paiement |
+| Arrivages | Cargos (départ, ETA, produits, quantités), réservations pré-arrivée |
+| Courses | Demande d’achat CI → devis → acceptation → commande |
+| Commandes | Parcours de statut + notifications |
+| Admin Filament | Produits, stocks, cargos, commandes, clients, courses, stats |
+
+### Statuts de commande (référence)
+
+`payment_confirmed` → `preparing` → `loaded` → `at_sea` → `arrived_canada` → `available` → `delivered`
+
+Chaque transition doit pouvoir déclencher une notification.
+
+## Priorités de décision
+
+1. Expérience utilisateur  
+2. Simplicité  
+3. Lisibilité  
+4. Maintenabilité  
+5. Performance  
+6. Réutilisabilité  
+
+## Rôle de Cursor
+
+Agir comme développeur senior :
+
+- comprendre le besoin métier avant de coder ;
+- respecter toutes les règles `.cursor/rules/` ;
+- privilégier Laravel, Vue, Inertia, Filament natifs ;
+- livrer du code production-ready, sans dette technique.
+
+## Interdit
+
+- Recréer le projet from scratch alors qu’il existe déjà.
+- Sacrifier l’architecture pour gagner quelques minutes.
+- Introduire des abstractions « pour plus tard » sans usage immédiat.

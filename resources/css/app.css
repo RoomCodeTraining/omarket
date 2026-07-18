@@ -1,0 +1,147 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../js/**/*.{vue,js,ts}';
+@source '../views/**/*.blade.php';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+
+    --color-forest-950: #0a1f18;
+    --color-forest-900: #0f2e24;
+    --color-forest-800: #164536;
+    --color-forest-700: #1a5c47;
+    --color-forest-600: #217a5c;
+    --color-brass: #b8956b;
+    --color-brass-light: #d4b896;
+    --color-stone: #eef1ee;
+    --color-stone-soft: #f7f8f6;
+    --color-ink: #1c2421;
+    --color-ink-muted: #5a6760;
+}
+
+@utility font-display {
+    font-family: var(--font-display);
+}
+
+@keyframes landing-fade-up {
+    from {
+        opacity: 0;
+        transform: translateY(1.25rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes landing-ken {
+    from {
+        transform: scale(1);
+    }
+    to {
+        transform: scale(1.06);
+    }
+}
+
+@keyframes landing-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@utility animate-fade-up {
+    animation: landing-fade-up 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@utility animate-fade-in {
+    animation: landing-fade-in 1.1s ease both;
+}
+
+@utility animate-ken {
+    animation: landing-ken 18s ease-out forwards;
+}
+
+@utility animation-delay-150 {
+    animation-delay: 150ms;
+}
+
+@utility animation-delay-300 {
+    animation-delay: 300ms;
+}
+
+@utility animation-delay-450 {
+    animation-delay: 450ms;
+}
+
+@utility animation-delay-600 {
+    animation-delay: 600ms;
+}
+
+@keyframes cart-bump {
+    0% {
+        transform: scale(1);
+    }
+    35% {
+        transform: scale(1.18) rotate(-6deg);
+    }
+    70% {
+        transform: scale(0.96) rotate(3deg);
+    }
+    100% {
+        transform: scale(1) rotate(0);
+    }
+}
+
+@keyframes cart-badge-pop {
+    0% {
+        transform: scale(0.4);
+    }
+    60% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translateY(-0.85rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@utility animate-cart-bump {
+    animation: cart-bump 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@utility animate-cart-badge {
+    animation: cart-badge-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@utility animate-toast-in {
+    animation: toast-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+    }
+
+    #parcours,
+    #arrivages,
+    #courses {
+        scroll-margin-top: 5.5rem;
+    }
+}

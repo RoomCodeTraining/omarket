@@ -1,0 +1,47 @@
+---
+description: Stratégie de tests Pest, couverture et bonnes pratiques
+globs: "{tests/**/*.php,Pest.php}"
+alwaysApply: false
+---
+
+# Tests (Pest)
+
+## Stack
+
+- **Pest** + plugin Laravel (remplace le style PHPUnit pur pour les nouveaux tests).
+- Lancer : `ddev exec php artisan test` ou `ddev exec ./vendor/bin/pest`.
+
+## Quoi tester en priorité
+
+1. **Actions métier** (stock, réservation cargo, acceptation devis, transitions commande).
+2. **Policies** (client vs admin).
+3. **Form Requests** / validation critiques.
+4. **Features HTTP/Inertia** : réponses, auth, flash, droits.
+5. Listeners/Jobs de notification (fakes Notification / Queue).
+
+## Style Pest
+
+```php
+it('decrements stock when placing an order', function () {
+    // arrange
+    // act
+    // assert
+});
+```
+
+- Un comportement = un test lisible.
+- Factories pour les modèles.
+- `Notification::fake()`, `Event::fake()`, `Queue::fake()` quand pertinent.
+- `RefreshDatabase` sur les feature/action tests DB.
+
+## Périmètre
+
+- Pas besoin de tout tester UI Filament pixel-perfect.
+- Tester les Actions appelées par Filament.
+- Pas de tests fragiles liés au markup Tailwind.
+
+## Interdit
+
+- Tests qui dépendent de l’horloge réelle sans contrôle (`Carbon::setTestNow`).
+- Hits réseau réels (paiement, mail) : toujours fake/stub.
+- Laisser échouer la suite « on corrigera plus tard » sur une feature mergée.

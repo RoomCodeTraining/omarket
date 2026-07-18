@@ -1,0 +1,59 @@
+---
+description: Workflow de développement DDEV, commandes et checklist PR
+alwaysApply: true
+---
+
+# Workflow de développement
+
+## Environnement
+
+```bash
+ddev start
+ddev composer install
+ddev npm install
+ddev artisan migrate
+ddev npm run dev          # ou ddev exec npm run dev
+```
+
+URL : `https://omarket.ddev.site`
+Mail local : Mailpit DDEV.
+
+## Avant d’implémenter une feature
+
+1. Lire les rules métier + domaine + roadmap.
+2. Identifier Action(s), Enum(s), Policy, Event/Notification.
+3. Écrire ou esquisser le test Pest du cas nominal.
+4. Implémenter le minimum pour faire passer le test.
+5. Brancher Filament et/ou Inertia sur la même Action.
+
+## Commandes usuelles
+
+```bash
+ddev artisan make:model Product -mf
+ddev artisan make:enum OrderStatus
+ddev exec ./vendor/bin/pint --dirty
+ddev exec php artisan test
+ddev npm run build
+```
+
+## Git
+
+- Commits uniquement sur demande explicite de l’utilisateur.
+- Messages en anglais, orientés « pourquoi ».
+- Ne jamais committer `.env`, secrets, dumps.
+
+## Checklist avant de considérer une feature « done »
+
+- [ ] Action métier testée
+- [ ] Validation Form Request
+- [ ] Policy si accès sensible
+- [ ] UI client et/ou Filament branchée
+- [ ] Notification si transition statut
+- [ ] Pint clean sur les fichiers touchés
+- [ ] Pas de dette évidente (TODO bloquant)
+
+## Interdit
+
+- Développer hors DDEV avec une autre DB « pour aller plus vite » sans aligner `.env`.
+- Merger une feature stock/commande sans test d’invariant.
+- Ajouter des packages majeurs sans mise à jour de `01-tech-stack.mdc`.

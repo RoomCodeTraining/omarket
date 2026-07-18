@@ -1,0 +1,57 @@
+---
+description: Modèle de domaine — agrégats, entités et relations métier
+alwaysApply: true
+---
+
+# Domaine — modèle conceptuel
+
+## Agrégats principaux
+
+### Catalog
+
+- **Category** — organisation boutique (parent optionnel plus tard).
+- **Product** — nom, slug, description, prix, images, statut publication.
+- **Stock** (ou champs sur Product) — quantité disponible locale.
+
+### Shipping / Arrivals
+
+- **Cargo** — code, departure_at, estimated_arrival_at, status.
+- **CargoItem** — product_id, quantity_available, quantity_reserved.
+- **Reservation** (ou Order type `cargo`) — allocation client sur CargoItem.
+
+### Commerce
+
+- **Cart** / **CartItem** — panier client (session user).
+- **Order** — référence, user_id, status, totals, type (`stock` | `cargo` | `custom`).
+- **OrderItem** — product snapshot (nom, prix), quantity, liens cargo/quote si besoin.
+- **Payment** — provider, amount, status, external_id (phase paiement).
+
+### Custom shopping
+
+- **CustomRequest** — demande client (texte, qty, budget optionnel).
+- **Quote** — montant, message admin, status (`draft` | `sent` | `accepted` | `rejected` | `expired`).
+- Acceptation Quote → crée Order (Action).
+
+### Identity
+
+- **User** — client ; flag/role `is_admin` ou table roles minimale pour staff Filament.
+
+## Enums à prévoir
+
+`OrderStatus`, `CargoStatus`, `QuoteStatus`, `PaymentStatus`, `ProductStatus`.
+
+## Invariants
+
+- `quantity_reserved <= quantity` sur cargo items.
+- Order total = somme des lignes + frais (calcul serveur).
+- Transitions `OrderStatus` validées dans une Action / state machine simple.
+
+## Évolutions futures (ne pas sur-modéliser maintenant)
+
+- `Vendor`, multi-tenant, loyalty points, subscriptions.
+
+## Interdit
+
+- Tables « fourre-tout » sans frontière d’agrégat.
+- Coupler Product directement à des détails de paiement.
+- Prévoir 20 tables spéculatives avant Phase 2.

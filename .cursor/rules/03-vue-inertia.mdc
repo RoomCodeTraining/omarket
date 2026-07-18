@@ -1,0 +1,69 @@
+---
+description: Conventions Vue 3, Inertia.js et TypeScript pour le storefront
+globs: resources/js/**/*.{vue,ts,js}
+alwaysApply: false
+---
+
+# Vue 3 + Inertia + TypeScript
+
+## Rôle
+
+Le frontend client est une app **Inertia + Vue 3 + TypeScript**.
+Laravel reste la source de vérité (routing, auth, validation, données).
+
+## Organisation
+
+```
+resources/js/
+  app.ts
+  Pages/           # Une page Inertia = une route
+    Shop/
+    Orders/
+    Account/
+  Components/      # UI réutilisable
+  Layouts/         # AppLayout, GuestLayout, ...
+  Composables/     # logique UI réutilisable
+  Types/           # types partagés
+```
+
+Pages Inertia : `resources/js/Pages/...` résolues par nom (`Shop/Index` → `Pages/Shop/Index.vue`).
+
+## Patterns obligatoires
+
+- `<script setup lang="ts">` pour les composants.
+- Props typées via `defineProps<Props>()`.
+- Navigation : `Link`, `router` d’`@inertiajs/vue3` — pas de Vue Router.
+- Formulaires : `useForm()` Inertia pour POST/PUT/PATCH/DELETE.
+- Afficher les erreurs de validation Laravel (`form.errors`).
+
+```vue
+<script setup lang="ts">
+import { useForm } from "@inertiajs/vue3";
+
+const form = useForm({ quantity: 1 });
+
+function submit() {
+    form.post(route("cart.items.store", props.product.id));
+}
+</script>
+```
+
+## Données
+
+- Le Controller / Action prépare un payload minimal et stable.
+- Ne pas sur-fetcher : paginer, sélectionner les colonnes/relations nécessaires.
+- Typer les props de page dans `Types/` quand le shape est partagé.
+
+## UI
+
+- Tailwind CSS 4 utilitaire ; pas de CSS modules parallèles sans raison.
+- Composants petits, une responsabilité.
+- Layouts pour header/footer/nav — pas de duplication page à page.
+
+## Interdit
+
+- Appeler une API JSON ad hoc pour des écrans qui doivent être Inertia.
+- Stocker l’état métier critique uniquement côté client.
+- `any` TypeScript sauf cas ponctuel justifié.
+- Gros composants « page + logique + UI » non découpés (> ~200–300 lignes : découper).
+- Introduire Pinia/Vuex sans besoin clair (préférer props Inertia + composables locaux).
