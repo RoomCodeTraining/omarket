@@ -145,3 +145,7 @@
         scroll-margin-top: 5.5rem;
     }
 }
+
+@utility py-18 {
+    padding-block: 4.5rem;
+}

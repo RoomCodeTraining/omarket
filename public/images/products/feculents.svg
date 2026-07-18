@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img">
+  <rect width="800" height="800" fill="#F3EEE4"/>
+  <ellipse cx="400" cy="420" rx="170" ry="60" fill="#C4A35A" opacity="0.35"/>
+  <path d="M250 380c40-120 100-180 150-180s110 60 150 180c20 60-10 110-70 125H320c-60-15-90-65-70-125z" fill="#1A3D30"/>
+  <ellipse cx="400" cy="280" rx="55" ry="22" fill="#0F2E24"/>
+  <text x="400" y="640" text-anchor="middle" fill="#0F2E24" font-family="Georgia, serif" font-size="28">Féculents</text>
+</svg>

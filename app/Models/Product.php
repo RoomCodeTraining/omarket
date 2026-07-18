@@ -28,6 +28,8 @@ class Product extends Model
     /** @use HasFactory<ProductFactory> */
     use HasFactory;
 
+    public const DEFAULT_IMAGE_PATH = 'images/products/default.svg';
+
     protected function casts(): array
     {
         return [
@@ -36,6 +38,15 @@ class Product extends Model
             'status' => ProductStatus::class,
             'is_featured' => 'boolean',
         ];
+    }
+
+    public function imageUrl(): string
+    {
+        if (filled($this->image_path)) {
+            return asset(ltrim((string) $this->image_path, '/'));
+        }
+
+        return asset(self::DEFAULT_IMAGE_PATH);
     }
 
     public function category(): BelongsTo

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import ProductImage from '@/Components/Shop/ProductImage.vue';
 
 type CartItem = {
     product_id: number;
@@ -11,6 +12,7 @@ type CartItem = {
     line_total: string;
     stock_quantity: number;
     in_stock: boolean;
+    image_url: string;
     category: string | null;
 };
 
@@ -44,15 +46,24 @@ function removeItem(productId: number) {
                         :key="item.product_id"
                         class="flex flex-col gap-4 border border-forest-900/10 bg-white p-5 md:flex-row md:items-center md:justify-between"
                     >
-                        <div>
-                            <p class="text-xs tracking-wide text-ink-muted uppercase">
-                                {{ item.category }}
-                            </p>
-                            <h2 class="font-display mt-1 text-2xl text-forest-900">{{ item.name }}</h2>
-                            <p class="mt-1 text-sm text-ink-muted">
-                                {{ item.price }} / {{ item.unit }}
-                                <span v-if="!item.in_stock" class="text-brass"> · stock insuffisant</span>
-                            </p>
+                        <div class="flex items-center gap-4">
+                            <div class="h-20 w-20 shrink-0 overflow-hidden bg-stone-soft">
+                                <ProductImage
+                                    :src="item.image_url"
+                                    :alt="item.name"
+                                    img-class="h-full w-full object-cover"
+                                />
+                            </div>
+                            <div>
+                                <p class="text-xs tracking-wide text-ink-muted uppercase">
+                                    {{ item.category }}
+                                </p>
+                                <h2 class="font-display mt-1 text-2xl text-forest-900">{{ item.name }}</h2>
+                                <p class="mt-1 text-sm text-ink-muted">
+                                    {{ item.price }} / {{ item.unit }}
+                                    <span v-if="!item.in_stock" class="text-brass"> · stock insuffisant</span>
+                                </p>
+                            </div>
                         </div>
 
                         <div class="flex flex-wrap items-center gap-3">

@@ -33,6 +33,7 @@ class ShopController extends Controller
                 'unit' => $product->unit,
                 'is_featured' => $product->is_featured,
                 'in_stock' => $product->isAvailableLocally(),
+                'image_url' => $product->imageUrl(),
                 'category' => $product->category?->only(['id', 'name', 'slug']),
             ]);
 

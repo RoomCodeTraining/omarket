@@ -3,11 +3,13 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHero from '@/Components/Landing/PageHero.vue';
+import ProductImage from '@/Components/Shop/ProductImage.vue';
 
 type CargoItem = {
     id: number;
     product_name: string | null;
     category: string | null;
+    image_url: string;
     quantity_remaining: number;
     quantity_available: number;
     quantity_reserved: number;
@@ -130,13 +132,22 @@ function submitReserve() {
                     <div class="divide-y divide-forest-900/10">
                         <div v-for="item in cargo.items" :key="item.id" class="px-6 py-5 md:px-8">
                             <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                                <div>
-                                    <p class="font-medium text-forest-900">{{ item.product_name }}</p>
-                                    <p class="text-xs text-ink-muted">{{ item.category }}</p>
-                                    <p class="mt-2 text-sm text-ink-muted">
-                                        Restant {{ item.quantity_remaining }} / {{ item.quantity_available }}
-                                        · {{ item.unit_price }} / {{ item.unit }}
-                                    </p>
+                                <div class="flex items-center gap-4">
+                                    <div class="h-16 w-16 shrink-0 overflow-hidden bg-stone-soft">
+                                        <ProductImage
+                                            :src="item.image_url"
+                                            :alt="item.product_name ?? 'Produit'"
+                                            img-class="h-full w-full object-cover"
+                                        />
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-forest-900">{{ item.product_name }}</p>
+                                        <p class="text-xs text-ink-muted">{{ item.category }}</p>
+                                        <p class="mt-2 text-sm text-ink-muted">
+                                            Restant {{ item.quantity_remaining }} / {{ item.quantity_available }}
+                                            · {{ item.unit_price }} / {{ item.unit }}
+                                        </p>
+                                    </div>
                                 </div>
                                 <button
                                     type="button"

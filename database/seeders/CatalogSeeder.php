@@ -56,6 +56,14 @@ class CatalogSeeder extends Seeder
             );
         })->keyBy('slug');
 
+        $categoryImages = [
+            'epicerie' => 'images/products/epicerie.svg',
+            'feculents' => 'images/products/feculents.svg',
+            'huiles-condiments' => 'images/products/huiles.svg',
+            'boissons' => 'images/products/boissons.svg',
+            'beaute-soins' => 'images/products/beaute.svg',
+        ];
+
         $productsData = [
             ['category' => 'epicerie', 'name' => 'Cube Maggi crevette', 'price' => 449, 'stock' => 120, 'unit' => 'sachet', 'featured' => true],
             ['category' => 'epicerie', 'name' => 'Riz parfumé 5 kg', 'price' => 1899, 'stock' => 40, 'unit' => 'sac', 'featured' => true],
@@ -87,7 +95,7 @@ class CatalogSeeder extends Seeder
                     'stock_quantity' => $item['stock'],
                     'unit' => $item['unit'],
                     'status' => ProductStatus::Published,
-                    'image_path' => null,
+                    'image_path' => $categoryImages[$item['category']] ?? Product::DEFAULT_IMAGE_PATH,
                     'is_featured' => $item['featured'],
                 ],
             );

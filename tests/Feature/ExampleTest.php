@@ -1,13 +1,16 @@
 <?php
 
 it('renders the home page', function () {
+    $this->seed(\Database\Seeders\CatalogSeeder::class);
+
     $response = $this->get(route('home'));
 
     $response->assertOk();
     $response->assertInertia(fn ($page) => $page
         ->component('Home')
         ->has('nextArrival.label')
-        ->has('nextArrival.eta'));
+        ->has('nextArrival.eta')
+        ->has('featuredProducts'));
 });
 
 it('renders the shop page with seeded catalog', function () {
@@ -18,6 +21,7 @@ it('renders the shop page with seeded catalog', function () {
         ->assertInertia(fn ($page) => $page
             ->component('Shop/Index')
             ->has('products')
+            ->has('products.0.image_url')
             ->has('categories')
             ->where('stats.products', fn ($count) => $count > 0));
 });
@@ -33,12 +37,12 @@ it('renders the arrivals page with open cargo', function () {
             ->has('nextArrival.label'));
 });
 
-it('renders the courses page with request examples', function () {
+it('renders the courses page', function () {
     $this->seed(\Database\Seeders\CatalogSeeder::class);
 
     $this->get(route('courses.index'))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Courses/Index')
-            ->has('examples'));
+            ->missing('examples'));
 });

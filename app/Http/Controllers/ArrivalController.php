@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Cargo;
+use App\Models\Product;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -29,6 +30,7 @@ class ArrivalController extends Controller
                     'id' => $item->id,
                     'product_name' => $item->product?->name,
                     'category' => $item->product?->category?->name,
+                    'image_url' => $item->product?->imageUrl() ?? asset(Product::DEFAULT_IMAGE_PATH),
                     'quantity_remaining' => $item->quantityRemaining(),
                     'quantity_available' => $item->quantity_available,
                     'quantity_reserved' => $item->quantity_reserved,

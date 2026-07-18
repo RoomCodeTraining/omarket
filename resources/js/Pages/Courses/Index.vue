@@ -3,24 +3,6 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHero from '@/Components/Landing/PageHero.vue';
 
-type Example = {
-    id: number;
-    title: string;
-    description: string;
-    quantity: number;
-    budget: string | null;
-    status_label: string;
-    quote: {
-        amount: string;
-        status_label: string;
-        message: string | null;
-    } | null;
-};
-
-defineProps<{
-    examples: Example[];
-}>();
-
 const form = useForm({
     guest_name: '',
     guest_email: '',
@@ -170,28 +152,6 @@ function submit() {
                                 <p class="text-ink-muted">Vous validez, on s’occupe du reste.</p>
                             </li>
                         </ol>
-
-                        <div class="mt-10 space-y-4">
-                            <h3 class="font-medium text-forest-900">Dernières demandes (démo)</h3>
-                            <article
-                                v-for="example in examples"
-                                :key="example.id"
-                                class="border border-forest-900/10 bg-white p-4"
-                            >
-                                <div class="flex items-start justify-between gap-3">
-                                    <p class="font-medium text-forest-900">{{ example.title }}</p>
-                                    <span class="text-xs font-semibold text-forest-700">
-                                        {{ example.status_label }}
-                                    </span>
-                                </div>
-                                <p
-                                    v-if="example.quote"
-                                    class="mt-2 text-sm text-ink-muted"
-                                >
-                                    Devis {{ example.quote.amount }}
-                                </p>
-                            </article>
-                        </div>
 
                         <Link href="/boutique" class="mt-8 inline-flex text-sm font-semibold text-forest-700">
                             Retour boutique →

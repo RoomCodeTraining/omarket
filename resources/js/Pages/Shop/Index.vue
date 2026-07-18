@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHero from '@/Components/Landing/PageHero.vue';
+import ProductImage from '@/Components/Shop/ProductImage.vue';
 
 type Category = { id: number; name: string; slug: string };
 type Product = {
@@ -15,6 +16,7 @@ type Product = {
     unit: string;
     is_featured: boolean;
     in_stock: boolean;
+    image_url: string;
     category: Category | null;
 };
 
@@ -121,45 +123,54 @@ function addToCart(product: Product) {
                     <article
                         v-for="product in filteredProducts"
                         :key="product.id"
-                        class="flex flex-col border border-forest-900/10 bg-white p-6 transition hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-28px_rgba(15,46,36,0.35)]"
+                        class="flex flex-col overflow-hidden border border-forest-900/10 bg-white transition hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-28px_rgba(15,46,36,0.35)]"
                     >
-                        <div class="flex items-start justify-between gap-3">
-                            <p class="text-xs tracking-wide text-ink-muted uppercase">
-                                {{ product.category?.name ?? 'Produit' }}
-                            </p>
-                            <span
-                                class="text-xs font-semibold"
-                                :class="product.in_stock ? 'text-forest-700' : 'text-brass'"
-                            >
-                                {{ product.in_stock ? 'En stock' : 'Rupture' }}
-                            </span>
+                        <div class="aspect-[4/3] overflow-hidden bg-stone-soft">
+                            <ProductImage
+                                :src="product.image_url"
+                                :alt="product.name"
+                                img-class="h-full w-full object-cover"
+                            />
                         </div>
-                        <h3 class="font-display mt-3 text-2xl text-forest-900">{{ product.name }}</h3>
-                        <p class="mt-3 line-clamp-3 flex-1 text-sm leading-relaxed text-ink-muted">
-                            {{ product.description }}
-                        </p>
-                        <div class="mt-6 flex items-end justify-between gap-3 border-t border-forest-900/10 pt-4">
-                            <div>
-                                <p class="text-lg font-semibold text-forest-900">{{ product.price }}</p>
-                                <p class="text-xs text-ink-muted">
-                                    / {{ product.unit }}
-                                    <span v-if="product.in_stock"> · {{ product.stock_quantity }} dispo</span>
+                        <div class="flex flex-1 flex-col p-6">
+                            <div class="flex items-start justify-between gap-3">
+                                <p class="text-xs tracking-wide text-ink-muted uppercase">
+                                    {{ product.category?.name ?? 'Produit' }}
                                 </p>
+                                <span
+                                    class="text-xs font-semibold"
+                                    :class="product.in_stock ? 'text-forest-700' : 'text-brass'"
+                                >
+                                    {{ product.in_stock ? 'En stock' : 'Rupture' }}
+                                </span>
                             </div>
-                            <button
-                                type="button"
-                                class="min-h-10 min-w-24 bg-forest-900 px-4 text-sm font-semibold text-white transition hover:bg-forest-800 disabled:cursor-not-allowed disabled:opacity-40"
-                                :disabled="!product.in_stock || addingId === product.id"
-                                @click="addToCart(product)"
-                            >
-                                <span v-if="addingId === product.id" class="inline-flex items-center gap-2">
-                                    <span class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                                    Ajout
-                                </span>
-                                <span v-else>
-                                    {{ product.in_stock ? 'Ajouter' : 'Indisponible' }}
-                                </span>
-                            </button>
+                            <h3 class="font-display mt-3 text-2xl text-forest-900">{{ product.name }}</h3>
+                            <p class="mt-3 line-clamp-3 flex-1 text-sm leading-relaxed text-ink-muted">
+                                {{ product.description }}
+                            </p>
+                            <div class="mt-6 flex items-end justify-between gap-3 border-t border-forest-900/10 pt-4">
+                                <div>
+                                    <p class="text-lg font-semibold text-forest-900">{{ product.price }}</p>
+                                    <p class="text-xs text-ink-muted">
+                                        / {{ product.unit }}
+                                        <span v-if="product.in_stock"> · {{ product.stock_quantity }} dispo</span>
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="min-h-10 min-w-24 bg-forest-900 px-4 text-sm font-semibold text-white transition hover:bg-forest-800 disabled:cursor-not-allowed disabled:opacity-40"
+                                    :disabled="!product.in_stock || addingId === product.id"
+                                    @click="addToCart(product)"
+                                >
+                                    <span v-if="addingId === product.id" class="inline-flex items-center gap-2">
+                                        <span class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                                        Ajout
+                                    </span>
+                                    <span v-else>
+                                        {{ product.in_stock ? 'Ajouter' : 'Indisponible' }}
+                                    </span>
+                                </button>
+                            </div>
                         </div>
                     </article>
                 </div>

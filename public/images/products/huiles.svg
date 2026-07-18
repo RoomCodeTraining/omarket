@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800" role="img">
+  <rect width="800" height="800" fill="#F3EEE4"/>
+  <path d="M360 180h80v40c40 20 60 60 60 110v220c0 44-36 80-80 80h-40c-44 0-80-36-80-80V330c0-50 20-90 60-110V180z" fill="#8B3A1A"/>
+  <rect x="370" y="150" width="60" height="40" rx="8" fill="#1A3D30"/>
+  <ellipse cx="400" cy="400" rx="55" ry="70" fill="#C45C26" opacity="0.55"/>
+  <text x="400" y="640" text-anchor="middle" fill="#0F2E24" font-family="Georgia, serif" font-size="28">Huiles</text>
+</svg>

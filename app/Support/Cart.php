@@ -37,7 +37,7 @@ final class Cart
     }
 
     /**
-     * @return Collection<int, array{product_id: int, quantity: int, product: Product|null, line_total_cents: int, price_cents: int, name: string, unit: string, stock_quantity: int}>
+     * @return Collection<int, array{product_id: int, quantity: int, name: string, unit: string, price_cents: int, price: string, stock_quantity: int, in_stock: bool, image_url: string, line_total_cents: int, line_total: string, category: string|null}>
      */
     public static function detailed(): Collection
     {
@@ -65,6 +65,7 @@ final class Cart
                 'price' => $product?->priceFormatted() ?? '0,00 $',
                 'stock_quantity' => $product?->stock_quantity ?? 0,
                 'in_stock' => $product?->isAvailableLocally() ?? false,
+                'image_url' => $product?->imageUrl() ?? asset(Product::DEFAULT_IMAGE_PATH),
                 'line_total_cents' => ($product?->price_cents ?? 0) * $item['quantity'],
                 'line_total' => number_format((($product?->price_cents ?? 0) * $item['quantity']) / 100, 2, ',', ' ').' $',
                 'category' => $product?->category?->name,
