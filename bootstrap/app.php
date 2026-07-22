@@ -24,10 +24,16 @@ return Application::configure(basePath: dirname(__DIR__))
             'partner' => EnsurePartner::class,
         ]);
 
-        $middleware->redirectGuestsTo(fn () => route('partner.login'));
+        $middleware->redirectGuestsTo(function (Request $request) {
+            if ($request->is('partenaires') || $request->is('partenaires/*')) {
+                return route('partner.login');
+            }
+
+            return route('client.login');
+        });
         $middleware->redirectUsersTo(fn (Request $request) => $request->user()?->isPartner()
             ? route('partner.dashboard')
-            : route('home'));
+            : route('account.index'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -1,16 +1,34 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHero from '@/Components/Landing/PageHero.vue';
 
+const props = defineProps<{
+    defaults: {
+        guest_name: string;
+        guest_email: string;
+    };
+    is_authenticated: boolean;
+}>();
+
+const page = usePage();
+const authUser = computed(
+    () =>
+        (page.props.auth as { user?: { name: string; email: string } | null } | undefined)?.user ??
+        null,
+);
+
 const form = useForm({
-    guest_name: '',
-    guest_email: '',
+    guest_name: props.defaults.guest_name || authUser.value?.name || '',
+    guest_email: props.defaults.guest_email || authUser.value?.email || '',
     title: '',
     description: '',
     quantity: 1,
     budget: null as number | null,
 });
+
+const isLoggedIn = computed(() => props.is_authenticated || authUser.value !== null);
 
 function submit() {
     form.post('/courses', {
@@ -51,7 +69,23 @@ function submit() {
                             Remplissez le formulaire — nous vous répondons avec un devis.
                         </p>
 
-                        <div class="mt-8 grid gap-4 sm:grid-cols-2">
+                        <div
+                            v-if="isLoggedIn"
+                            class="mt-6 border border-forest-900/10 bg-stone-soft px-4 py-3 text-sm"
+                        >
+                            <p class="font-medium text-forest-900">
+                                {{ form.guest_name || authUser?.name }}
+                            </p>
+                            <p class="text-ink-muted">{{ form.guest_email || authUser?.email }}</p>
+                            <p class="mt-2 text-xs text-ink-muted">
+                                Demande liée à votre compte.
+                                <Link href="/compte" class="font-medium text-forest-800 underline">
+                                    Voir mes demandes
+                                </Link>
+                            </p>
+                        </div>
+
+                        <div v-else class="mt-8 grid gap-4 sm:grid-cols-2">
                             <div>
                                 <label class="text-xs font-medium text-ink-muted">Nom</label>
                                 <input
@@ -76,6 +110,13 @@ function submit() {
                                     {{ form.errors.guest_email }}
                                 </p>
                             </div>
+                            <p class="sm:col-span-2 text-xs text-ink-muted">
+                                Déjà un compte ?
+                                <Link href="/connexion" class="font-medium text-forest-800 underline">
+                                    Connectez-vous
+                                </Link>
+                                pour retrouver vos demandes.
+                            </p>
                         </div>
 
                         <div class="mt-4">

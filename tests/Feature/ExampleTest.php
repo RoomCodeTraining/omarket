@@ -20,8 +20,8 @@ it('renders the shop page with seeded catalog', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Shop/Index')
-            ->has('products')
-            ->has('products.0.image_url')
+            ->has('products.data')
+            ->has('products.data.0.image_url')
             ->has('categories')
             ->where('stats.products', fn ($count) => $count > 0));
 });
@@ -44,5 +44,7 @@ it('renders the courses page', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Courses/Index')
+            ->has('defaults')
+            ->has('is_authenticated')
             ->missing('examples'));
 });

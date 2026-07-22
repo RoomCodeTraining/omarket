@@ -1,20 +1,32 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import ProductImage from '@/Components/Shop/ProductImage.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 type Category = { id: number; name: string };
 type PartnerProduct = {
     id: number;
+    category_id: number;
     name: string;
+    description: string | null;
     category: string | null;
     price: string;
+    price_amount: number;
     stock_quantity: number;
     unit: string;
     status: string;
     status_label: string;
     image_url: string;
+};
+type PartnerOrder = {
+    id: number;
+    reference: string;
+    status: string;
+    status_label: string;
+    total: string;
+    placed_at: string | null;
+    items: Array<{ name: string; quantity: number; line_total: string }>;
 };
 
 const props = defineProps<{
@@ -32,6 +44,7 @@ const props = defineProps<{
         stock_units: number;
     };
     products: PartnerProduct[];
+    orders: PartnerOrder[];
     categories: Category[];
     defaults: {
         unit: string;
@@ -47,7 +60,12 @@ const pageErrors = computed(
 );
 const csrfToken = computed(() => String((page.props as { csrf_token?: string }).csrf_token ?? ''));
 
+const activeTab = ref<'products' | 'orders'>('products');
+const modalOpen = ref(false);
+const editingProduct = ref<PartnerProduct | null>(null);
+
 const imageName = ref<string | null>(null);
+const imagePreview = ref<string | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 const submitError = ref<string | null>(null);
 const imageUploading = ref(false);
@@ -62,15 +80,18 @@ const form = useForm({
     unit: props.defaults.unit || 'unité',
 });
 
-const statsCards = computed(() => [
-    { label: 'Produits', value: props.stats.total, hint: 'Tous statuts' },
-    { label: 'Brouillons', value: props.stats.draft, hint: 'À finaliser' },
-    { label: 'En revue', value: props.stats.pending_review, hint: 'Chez Ôhéfê' },
-    { label: 'Publiés', value: props.stats.published, hint: 'En boutique' },
-    { label: 'Unités stock', value: props.stats.stock_units, hint: 'Total déclaré' },
-]);
+const modalTitle = computed(() =>
+    editingProduct.value ? 'Modifier le produit' : 'Nouveau produit',
+);
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+
+function revokePreview() {
+    if (imagePreview.value?.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview.value);
+    }
+    imagePreview.value = null;
+}
 
 function authHeaders(): Record<string, string> {
     const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/);
@@ -84,7 +105,6 @@ function authHeaders(): Record<string, string> {
     };
 }
 
-/** Browser streams the File — no FileReader (avoids iCloud/Photos permission errors). */
 async function uploadImageFile(file: File): Promise<boolean> {
     const body = new FormData();
     body.append('image', file);
@@ -99,6 +119,61 @@ async function uploadImageFile(file: File): Promise<boolean> {
     return response.ok;
 }
 
+function resetFormFields() {
+    form.reset('name', 'description', 'price', 'stock_quantity');
+    form.category_id = props.categories[0]?.id ?? 0;
+    form.unit = props.defaults.unit || 'unité';
+    form.clearErrors();
+}
+
+function clearImage() {
+    imageName.value = null;
+    submitError.value = null;
+    revokePreview();
+
+    if (fileInput.value) {
+        fileInput.value.value = '';
+    }
+
+    if (editingProduct.value) {
+        imagePreview.value = editingProduct.value.image_url;
+    }
+}
+
+function openCreateModal() {
+    editingProduct.value = null;
+    resetFormFields();
+    clearImage();
+    submitError.value = null;
+    imageWarning.value = null;
+    modalOpen.value = true;
+}
+
+function openEditModal(product: PartnerProduct) {
+    editingProduct.value = product;
+    form.category_id = product.category_id;
+    form.name = product.name;
+    form.description = product.description ?? '';
+    form.price = product.price_amount;
+    form.stock_quantity = product.stock_quantity;
+    form.unit = product.unit;
+    form.clearErrors();
+    clearImage();
+    imagePreview.value = product.image_url;
+    imageName.value = null;
+    submitError.value = null;
+    imageWarning.value = null;
+    modalOpen.value = true;
+}
+
+function closeModal() {
+    modalOpen.value = false;
+    editingProduct.value = null;
+    clearImage();
+    submitError.value = null;
+    imageWarning.value = null;
+}
+
 function onImageChange(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
@@ -106,8 +181,12 @@ function onImageChange(event: Event) {
     submitError.value = null;
     imageWarning.value = null;
     imageName.value = null;
+    revokePreview();
 
     if (!file) {
+        if (editingProduct.value) {
+            imagePreview.value = editingProduct.value.image_url;
+        }
         return;
     }
 
@@ -118,14 +197,11 @@ function onImageChange(event: Event) {
     }
 
     imageName.value = file.name;
-}
 
-function clearImage() {
-    imageName.value = null;
-    submitError.value = null;
-
-    if (fileInput.value) {
-        fileInput.value.value = '';
+    try {
+        imagePreview.value = URL.createObjectURL(file);
+    } catch {
+        imagePreview.value = editingProduct.value?.image_url ?? null;
     }
 }
 
@@ -140,7 +216,7 @@ async function submitProduct(event: Event) {
     imageWarning.value = null;
 
     const file = fileInput.value?.files?.[0] ?? null;
-    let imageAttached = false;
+    let imageAttached = !file;
 
     if (file) {
         imageUploading.value = true;
@@ -153,32 +229,45 @@ async function submitProduct(event: Event) {
 
         imageUploading.value = false;
 
-        if (!imageAttached) {
+        if (!imageAttached && !editingProduct.value) {
             imageWarning.value =
-                'Produit enregistré sans image. Utilisez un JPEG/PNG depuis Téléchargements (pas Photos iCloud), ou ajoutez la photo plus tard en admin.';
+                'Le produit sera enregistré sans image si l’envoi échoue.';
         }
     }
 
-    form.post('/partenaires/espace/produits', {
+    const options = {
         preserveScroll: true,
         onSuccess: () => {
-            form.reset('name', 'description', 'price', 'stock_quantity');
-            form.unit = props.defaults.unit || 'unité';
-            clearImage();
-            if (!imageAttached && file) {
+            closeModal();
+            resetFormFields();
+            if (file && !imageAttached) {
                 imageWarning.value =
-                    'Produit créé. L’image n’a pas pu être envoyée — choisissez un fichier local (Téléchargements), ou ajoutez-la en admin.';
+                    'Produit enregistré. L’image n’a pas pu être envoyée.';
             }
         },
         onError: () => {
             submitError.value = 'Corrige les champs indiqués, puis réessaie.';
-            imageWarning.value = null;
         },
-    });
+    };
+
+    if (editingProduct.value) {
+        form.put(`/partenaires/espace/produits/${editingProduct.value.id}`, options);
+        return;
+    }
+
+    form.post('/partenaires/espace/produits', options);
 }
 
 function submitForReview(productId: number) {
     router.post(`/partenaires/espace/produits/${productId}/soumettre`, {}, { preserveScroll: true });
+}
+
+function unpublish(productId: number) {
+    if (!confirm('Retirer ce produit de la boutique ?')) {
+        return;
+    }
+
+    router.post(`/partenaires/espace/produits/${productId}/depublier`, {}, { preserveScroll: true });
 }
 
 function logout() {
@@ -187,15 +276,28 @@ function logout() {
 
 function statusTone(status: string): string {
     if (status === 'published') {
-        return 'text-emerald-800';
+        return 'text-emerald-700';
     }
 
     if (status === 'pending_review') {
-        return 'text-amber-800';
+        return 'text-amber-700';
+    }
+
+    if (status === 'archived') {
+        return 'text-stone-500';
     }
 
     return 'text-forest-700';
 }
+
+watch(modalOpen, (open) => {
+    document.body.style.overflow = open ? 'hidden' : '';
+});
+
+onUnmounted(() => {
+    revokePreview();
+    document.body.style.overflow = '';
+});
 </script>
 
 <template>
@@ -203,253 +305,339 @@ function statusTone(status: string): string {
         <Head title="Espace partenaire" />
 
         <section
-            class="bg-stone-soft px-4 pb-16 sm:px-5 md:px-8 md:pb-24"
-            :style="{ paddingTop: 'calc(var(--header-offset) + 1.5rem)' }"
+            class="bg-stone-soft px-4 pb-20 sm:px-6 md:px-8"
+            :style="{ paddingTop: 'calc(var(--header-offset) + 1.25rem)' }"
         >
-            <div class="mx-auto max-w-6xl space-y-8">
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div class="mx-auto max-w-6xl space-y-6">
+                <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div>
-                        <p class="text-sm tracking-[0.18em] text-brass uppercase">Espace partenaire</p>
-                        <h1 class="font-display mt-2 text-3xl text-forest-900 sm:text-4xl">{{ partner.name }}</h1>
-                        <p class="mt-2 text-sm text-ink-muted">{{ partner.email }}</p>
+                        <p class="text-xs tracking-[0.2em] text-brass uppercase">Espace partenaire</p>
+                        <h1 class="font-display mt-1 text-3xl text-forest-900 sm:text-4xl">{{ partner.name }}</h1>
+                        <p class="mt-1 text-sm text-ink-muted">
+                            {{ partner.can_publish ? 'Publication autorisée' : 'En attente de validation Ôhéfê' }}
+                            <span v-if="partner.approved_at"> · depuis le {{ partner.approved_at }}</span>
+                        </p>
                     </div>
-                    <button
-                        type="button"
-                        class="inline-flex min-h-11 items-center justify-center border border-forest-900/20 px-4 text-sm font-medium text-forest-900"
-                        @click="logout"
-                    >
-                        Déconnexion
-                    </button>
-                </div>
-
-                <div
-                    class="border px-5 py-4 text-sm"
-                    :class="
-                        partner.can_publish
-                            ? 'border-forest-900/15 bg-white text-forest-800'
-                            : 'border-brass/40 bg-white text-ink-muted'
-                    "
-                >
-                    <p v-if="partner.can_publish">
-                        Compte autorisé à publier
-                        <span v-if="partner.approved_at"> depuis le {{ partner.approved_at }}</span>.
-                        Ajoutez une image, puis soumettez chaque fiche pour validation Ôhéfê.
-                    </p>
-                    <p v-else>
-                        Compte créé. Préparez vos brouillons (avec photo) ; la soumission sera
-                        possible après validation par Ôhéfê.
-                    </p>
-                </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            class="inline-flex min-h-11 items-center justify-center bg-forest-900 px-4 text-sm font-semibold text-white"
+                            @click="openCreateModal"
+                        >
+                            Nouveau produit
+                        </button>
+                        <button
+                            type="button"
+                            class="inline-flex min-h-11 items-center justify-center border border-forest-900/20 px-4 text-sm text-forest-900"
+                            @click="logout"
+                        >
+                            Déconnexion
+                        </button>
+                    </div>
+                </header>
 
                 <p
                     v-if="flashSuccess"
-                    class="border border-forest-900/10 bg-white px-5 py-3 text-sm text-forest-800"
+                    class="border border-forest-900/10 bg-white px-4 py-3 text-sm text-forest-800"
                 >
                     {{ flashSuccess }}
                 </p>
+                <p v-if="imageWarning && !modalOpen" class="text-sm text-amber-800">{{ imageWarning }}</p>
 
-                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                    <div
-                        v-for="card in statsCards"
-                        :key="card.label"
-                        class="border border-forest-900/10 bg-white px-4 py-4"
-                    >
-                        <p class="text-[11px] tracking-[0.16em] text-ink-muted uppercase">{{ card.label }}</p>
-                        <p class="font-display mt-2 text-3xl text-forest-900">{{ card.value }}</p>
-                        <p class="mt-1 text-xs text-ink-muted">{{ card.hint }}</p>
-                    </div>
+                <div class="flex flex-wrap items-baseline gap-x-6 gap-y-1 text-sm text-ink-muted">
+                    <span><strong class="text-forest-900">{{ stats.total }}</strong> produits</span>
+                    <span><strong class="text-forest-900">{{ stats.published }}</strong> publiés</span>
+                    <span><strong class="text-forest-900">{{ stats.draft }}</strong> brouillons</span>
+                    <span><strong class="text-forest-900">{{ stats.pending_review }}</strong> en revue</span>
+                    <span><strong class="text-forest-900">{{ orders.length }}</strong> commandes</span>
                 </div>
 
-                <div class="grid gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-                    <form
-                        class="border border-forest-900/10 bg-white p-5 sm:p-6"
-                        @submit="submitProduct"
+                <div class="flex gap-6 border-b border-forest-900/10 text-sm">
+                    <button
+                        type="button"
+                        class="border-b-2 pb-3 font-medium transition"
+                        :class="
+                            activeTab === 'products'
+                                ? 'border-forest-900 text-forest-900'
+                                : 'border-transparent text-ink-muted'
+                        "
+                        @click="activeTab = 'products'"
                     >
-                        <h2 class="font-display text-2xl text-forest-900">Nouveau produit</h2>
-                        <p class="mt-2 text-sm text-ink-muted">
-                            Brouillon hors boutique. Image optionnelle — fichier JPEG/PNG depuis
-                            Téléchargements (évitez Photos iCloud).
-                        </p>
+                        Produits
+                    </button>
+                    <button
+                        type="button"
+                        class="border-b-2 pb-3 font-medium transition"
+                        :class="
+                            activeTab === 'orders'
+                                ? 'border-forest-900 text-forest-900'
+                                : 'border-transparent text-ink-muted'
+                        "
+                        @click="activeTab = 'orders'"
+                    >
+                        Commandes
+                    </button>
+                </div>
 
-                        <div class="mt-6 space-y-4">
-                            <div>
-                                <label class="text-xs font-medium text-ink-muted">Image produit</label>
-                                <input
-                                    ref="fileInput"
-                                    type="file"
-                                    accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif"
-                                    class="mt-2 block w-full text-sm text-ink-muted file:mr-3 file:border-0 file:bg-forest-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
-                                    @change="onImageChange"
-                                />
-                                <div class="mt-2 flex flex-wrap items-center gap-3">
-                                    <p v-if="imageName" class="text-xs text-ink-muted">{{ imageName }}</p>
-                                    <button
-                                        v-if="imageName"
-                                        type="button"
-                                        class="text-xs font-medium text-forest-700 underline"
-                                        @click="clearImage"
-                                    >
-                                        Retirer
-                                    </button>
-                                </div>
-                                <p v-if="form.errors.image || form.errors.image_base64 || pageErrors.image" class="mt-1 text-xs text-red-600">
-                                    {{ form.errors.image || form.errors.image_base64 || pageErrors.image }}
-                                </p>
-                            </div>
-
-                            <div>
-                                <label class="text-xs font-medium text-ink-muted">Catégorie</label>
-                                <select
-                                    v-model.number="form.category_id"
-                                    required
-                                    class="mt-1 h-11 w-full border border-forest-900/15 bg-white px-3"
-                                >
-                                    <option
-                                        v-for="category in categories"
-                                        :key="category.id"
-                                        :value="category.id"
-                                    >
-                                        {{ category.name }}
-                                    </option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-xs font-medium text-ink-muted">Nom</label>
-                                <input
-                                    v-model="form.name"
-                                    type="text"
-                                    required
-                                    class="mt-1 h-11 w-full border border-forest-900/15 px-3"
-                                />
-                                <p v-if="form.errors.name || pageErrors.name" class="mt-1 text-xs text-red-600">
-                                    {{ form.errors.name || pageErrors.name }}
-                                </p>
-                            </div>
-                            <div>
-                                <label class="text-xs font-medium text-ink-muted">Description</label>
-                                <textarea
-                                    v-model="form.description"
-                                    rows="3"
-                                    class="mt-1 w-full border border-forest-900/15 px-3 py-2"
+                <div v-if="activeTab === 'products'">
+                    <div
+                        v-if="products.length"
+                        class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                    >
+                        <article
+                            v-for="product in products"
+                            :key="product.id"
+                            class="flex flex-col border border-forest-900/10 bg-white"
+                        >
+                            <div class="aspect-[4/3] overflow-hidden bg-stone-soft">
+                                <ProductImage
+                                    :src="product.image_url"
+                                    :alt="product.name"
+                                    img-class="h-full w-full object-cover"
                                 />
                             </div>
-                            <div class="grid gap-4 sm:grid-cols-3">
+                            <div class="flex flex-1 flex-col gap-3 p-4">
                                 <div>
-                                    <label class="text-xs font-medium text-ink-muted">Prix (CAD)</label>
-                                    <input
-                                        v-model.number="form.price"
-                                        type="number"
-                                        min="0.01"
-                                        step="0.01"
-                                        required
-                                        class="mt-1 h-11 w-full border border-forest-900/15 px-3"
-                                    />
-                                    <p v-if="form.errors.price || pageErrors.price" class="mt-1 text-xs text-red-600">
-                                        {{ form.errors.price || pageErrors.price }}
+                                    <h2 class="font-medium text-forest-900">{{ product.name }}</h2>
+                                    <p class="mt-1 text-sm text-ink-muted">
+                                        {{ product.price }} / {{ product.unit }} · stock
+                                        {{ product.stock_quantity }}
+                                    </p>
+                                    <p class="mt-2 text-xs font-medium" :class="statusTone(product.status)">
+                                        {{ product.status_label }}
                                     </p>
                                 </div>
-                                <div>
-                                    <label class="text-xs font-medium text-ink-muted">Stock</label>
-                                    <input
-                                        v-model.number="form.stock_quantity"
-                                        type="number"
-                                        min="0"
-                                        required
-                                        class="mt-1 h-11 w-full border border-forest-900/15 px-3"
-                                    />
-                                </div>
-                                <div>
-                                    <label class="text-xs font-medium text-ink-muted">Unité</label>
-                                    <input
-                                        v-model="form.unit"
-                                        type="text"
-                                        required
-                                        class="mt-1 h-11 w-full border border-forest-900/15 px-3"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        <p v-if="submitError" class="mt-4 text-sm text-red-600">{{ submitError }}</p>
-                        <p v-if="imageWarning" class="mt-4 text-sm text-amber-800">{{ imageWarning }}</p>
-
-                        <button
-                            type="submit"
-                            class="mt-6 inline-flex min-h-12 w-full items-center justify-center bg-forest-900 px-6 text-sm font-semibold text-white disabled:opacity-50"
-                            :disabled="form.processing || imageUploading"
-                        >
-                            {{
-                                imageUploading
-                                    ? 'Envoi de l’image…'
-                                    : form.processing
-                                      ? 'Enregistrement…'
-                                      : 'Enregistrer le brouillon'
-                            }}
-                        </button>
-                    </form>
-
-                    <div>
-                        <div class="flex items-end justify-between gap-3">
-                            <div>
-                                <h2 class="font-display text-2xl text-forest-900">Mes produits</h2>
-                                <p class="mt-1 text-sm text-ink-muted">Suivi de vos fiches et soumissions.</p>
-                            </div>
-                        </div>
-
-                        <div v-if="products.length" class="mt-6 space-y-3">
-                            <article
-                                v-for="product in products"
-                                :key="product.id"
-                                class="border border-forest-900/10 bg-white p-4"
-                            >
-                                <div class="flex gap-4">
-                                    <div
-                                        class="h-20 w-20 shrink-0 overflow-hidden border border-forest-900/10 bg-stone-soft"
+                                <div class="mt-auto flex flex-wrap gap-2">
+                                    <button
+                                        type="button"
+                                        class="inline-flex min-h-9 items-center border border-forest-900/15 px-3 text-xs font-medium text-forest-900"
+                                        @click="openEditModal(product)"
                                     >
-                                        <ProductImage
-                                            :src="product.image_url"
-                                            :alt="product.name"
-                                            img-class="h-full w-full object-cover"
-                                        />
-                                    </div>
-                                    <div class="min-w-0 flex-1">
-                                        <div
-                                            class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
-                                        >
-                                            <div class="min-w-0">
-                                                <h3 class="truncate font-medium text-forest-900">{{ product.name }}</h3>
-                                                <p class="mt-1 text-sm text-ink-muted">
-                                                    {{ product.category ?? 'Sans catégorie' }} ·
-                                                    {{ product.price }} / {{ product.unit }} · stock
-                                                    {{ product.stock_quantity }}
-                                                </p>
-                                                <p class="mt-2 text-xs font-medium" :class="statusTone(product.status)">
-                                                    {{ product.status_label }}
-                                                </p>
-                                            </div>
-                                            <button
-                                                v-if="product.status === 'draft' && partner.can_publish"
-                                                type="button"
-                                                class="inline-flex min-h-10 shrink-0 items-center justify-center border border-forest-900/20 px-3 text-xs font-semibold text-forest-900"
-                                                @click="submitForReview(product.id)"
-                                            >
-                                                Soumettre
-                                            </button>
-                                        </div>
-                                    </div>
+                                        Modifier
+                                    </button>
+                                    <button
+                                        v-if="product.status === 'draft' && partner.can_publish"
+                                        type="button"
+                                        class="inline-flex min-h-9 items-center bg-forest-900 px-3 text-xs font-semibold text-white"
+                                        @click="submitForReview(product.id)"
+                                    >
+                                        Soumettre
+                                    </button>
+                                    <button
+                                        v-if="product.status === 'published'"
+                                        type="button"
+                                        class="inline-flex min-h-9 items-center border border-forest-900/15 px-3 text-xs font-medium text-forest-700"
+                                        @click="unpublish(product.id)"
+                                    >
+                                        Dépublier
+                                    </button>
                                 </div>
-                            </article>
-                        </div>
-                        <p v-else class="mt-6 text-sm text-ink-muted">Aucun produit pour le moment.</p>
-
-                        <p class="mt-6 text-sm">
-                            <Link href="/boutique" class="font-medium text-forest-800 underline">
-                                Voir la boutique
-                            </Link>
-                        </p>
+                            </div>
+                        </article>
+                    </div>
+                    <div
+                        v-else
+                        class="border border-dashed border-forest-900/15 px-6 py-16 text-center"
+                    >
+                        <p class="text-forest-900">Aucun produit pour le moment.</p>
+                        <button
+                            type="button"
+                            class="mt-4 text-sm font-medium text-forest-800 underline"
+                            @click="openCreateModal"
+                        >
+                            Créer le premier produit
+                        </button>
                     </div>
                 </div>
+
+                <div v-else>
+                    <div v-if="orders.length" class="space-y-3">
+                        <article
+                            v-for="order in orders"
+                            :key="order.id"
+                            class="border border-forest-900/10 bg-white px-4 py-4"
+                        >
+                            <div class="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <p class="font-medium text-forest-900">{{ order.reference }}</p>
+                                    <p class="mt-1 text-sm text-ink-muted">
+                                        {{ order.placed_at ?? '—' }} · {{ order.status_label }}
+                                    </p>
+                                </div>
+                                <p class="text-sm font-medium text-forest-900">{{ order.total }}</p>
+                            </div>
+                            <ul class="mt-3 space-y-1 text-sm text-ink-muted">
+                                <li v-for="(item, index) in order.items" :key="`${order.id}-${index}`">
+                                    {{ item.quantity }}× {{ item.name }}
+                                    <span class="text-forest-800">· {{ item.line_total }}</span>
+                                </li>
+                            </ul>
+                        </article>
+                    </div>
+                    <p v-else class="border border-dashed border-forest-900/15 px-6 py-16 text-center text-ink-muted">
+                        Aucune commande sur vos produits pour le moment.
+                    </p>
+                </div>
+
+                <p class="text-sm">
+                    <Link href="/boutique" class="font-medium text-forest-800 underline">Voir la boutique</Link>
+                </p>
             </div>
         </section>
+
+        <div
+            v-if="modalOpen"
+            class="fixed inset-0 z-50 flex items-end justify-center bg-forest-950/40 p-0 sm:items-center sm:p-6"
+            @click.self="closeModal"
+        >
+            <div
+                class="max-h-[92vh] w-full max-w-lg overflow-y-auto border border-forest-900/10 bg-white shadow-xl sm:max-h-[90vh]"
+                role="dialog"
+                aria-modal="true"
+                :aria-label="modalTitle"
+            >
+                <div class="flex items-center justify-between border-b border-forest-900/10 px-5 py-4">
+                    <h2 class="font-display text-2xl text-forest-900">{{ modalTitle }}</h2>
+                    <button
+                        type="button"
+                        class="text-sm text-ink-muted hover:text-forest-900"
+                        @click="closeModal"
+                    >
+                        Fermer
+                    </button>
+                </div>
+
+                <form class="space-y-4 px-5 py-5" @submit="submitProduct">
+                    <div>
+                        <label class="text-xs font-medium text-ink-muted">Image</label>
+                        <input
+                            ref="fileInput"
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.webp,.gif,image/jpeg,image/png,image/webp,image/gif"
+                            class="mt-2 block w-full text-sm text-ink-muted file:mr-3 file:border-0 file:bg-forest-900 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
+                            @change="onImageChange"
+                        />
+                        <div v-if="imagePreview" class="mt-3 overflow-hidden border border-forest-900/10 bg-stone-soft">
+                            <img
+                                :src="imagePreview"
+                                alt="Aperçu"
+                                class="max-h-40 w-full object-cover"
+                            />
+                        </div>
+                        <div class="mt-2 flex flex-wrap items-center gap-3">
+                            <p v-if="imageName" class="text-xs text-ink-muted">{{ imageName }}</p>
+                            <button
+                                v-if="imageName"
+                                type="button"
+                                class="text-xs font-medium text-forest-700 underline"
+                                @click="clearImage"
+                            >
+                                Retirer
+                            </button>
+                        </div>
+                        <p
+                            v-if="form.errors.image || form.errors.image_base64 || pageErrors.image"
+                            class="mt-1 text-xs text-red-600"
+                        >
+                            {{ form.errors.image || form.errors.image_base64 || pageErrors.image }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-medium text-ink-muted">Catégorie</label>
+                        <select
+                            v-model.number="form.category_id"
+                            required
+                            class="mt-1 h-11 w-full border border-forest-900/15 bg-white px-3"
+                        >
+                            <option
+                                v-for="category in categories"
+                                :key="category.id"
+                                :value="category.id"
+                            >
+                                {{ category.name }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-medium text-ink-muted">Nom</label>
+                        <input
+                            v-model="form.name"
+                            type="text"
+                            required
+                            class="mt-1 h-11 w-full border border-forest-900/15 px-3"
+                        />
+                        <p v-if="form.errors.name || pageErrors.name" class="mt-1 text-xs text-red-600">
+                            {{ form.errors.name || pageErrors.name }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-medium text-ink-muted">Description</label>
+                        <textarea
+                            v-model="form.description"
+                            rows="3"
+                            class="mt-1 w-full border border-forest-900/15 px-3 py-2"
+                        />
+                    </div>
+
+                    <div class="grid gap-3 sm:grid-cols-3">
+                        <div>
+                            <label class="text-xs font-medium text-ink-muted">Prix (CAD)</label>
+                            <input
+                                v-model.number="form.price"
+                                type="number"
+                                min="0.01"
+                                step="0.01"
+                                required
+                                class="mt-1 h-11 w-full border border-forest-900/15 px-3"
+                            />
+                            <p v-if="form.errors.price || pageErrors.price" class="mt-1 text-xs text-red-600">
+                                {{ form.errors.price || pageErrors.price }}
+                            </p>
+                        </div>
+                        <div>
+                            <label class="text-xs font-medium text-ink-muted">Stock</label>
+                            <input
+                                v-model.number="form.stock_quantity"
+                                type="number"
+                                min="0"
+                                required
+                                class="mt-1 h-11 w-full border border-forest-900/15 px-3"
+                            />
+                        </div>
+                        <div>
+                            <label class="text-xs font-medium text-ink-muted">Unité</label>
+                            <input
+                                v-model="form.unit"
+                                type="text"
+                                required
+                                class="mt-1 h-11 w-full border border-forest-900/15 px-3"
+                            />
+                        </div>
+                    </div>
+
+                    <p v-if="submitError" class="text-sm text-red-600">{{ submitError }}</p>
+                    <p v-if="imageWarning && modalOpen" class="text-sm text-amber-800">{{ imageWarning }}</p>
+
+                    <button
+                        type="submit"
+                        class="inline-flex min-h-12 w-full items-center justify-center bg-forest-900 px-6 text-sm font-semibold text-white disabled:opacity-50"
+                        :disabled="form.processing || imageUploading"
+                    >
+                        {{
+                            imageUploading
+                                ? 'Envoi de l’image…'
+                                : form.processing
+                                  ? 'Enregistrement…'
+                                  : editingProduct
+                                    ? 'Enregistrer'
+                                    : 'Créer le brouillon'
+                        }}
+                    </button>
+                </form>
+            </div>
+        </div>
     </AppLayout>
 </template>

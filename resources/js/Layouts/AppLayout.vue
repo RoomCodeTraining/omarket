@@ -69,7 +69,7 @@ function closeMobile() {
 
 function logout() {
     closeMobile();
-    router.post('/partenaires/deconnexion');
+    router.post(isPartner.value ? '/partenaires/deconnexion' : '/deconnexion');
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -159,11 +159,11 @@ onUnmounted(() => {
                     />
                     <Link
                         v-else
-                        href="/boutique"
+                        href="/connexion"
                         class="hidden rounded-sm bg-brass px-4 py-2.5 text-sm font-semibold text-forest-950 shadow-sm transition hover:bg-brass-light sm:inline-flex"
                         @click="closeMobile"
                     >
-                        Commencer
+                        Connexion
                     </Link>
 
                     <button
@@ -237,6 +237,14 @@ onUnmounted(() => {
                             </span>
                             <span class="min-w-0 truncate">Mon espace</span>
                         </Link>
+                        <Link
+                            v-else
+                            href="/compte"
+                            class="mt-2 flex min-h-11 items-center justify-center bg-forest-900 px-4 text-sm font-semibold text-white"
+                            @click="closeMobile"
+                        >
+                            Mon compte
+                        </Link>
                         <button
                             type="button"
                             class="mt-2 flex min-h-11 w-full items-center justify-center border border-forest-900/15 px-4 text-sm font-semibold text-forest-900"
@@ -247,11 +255,11 @@ onUnmounted(() => {
                     </template>
                     <Link
                         v-else
-                        href="/boutique"
+                        href="/connexion"
                         class="mt-2 inline-flex min-h-11 items-center justify-center bg-brass px-4 text-sm font-semibold text-forest-950"
                         @click="closeMobile"
                     >
-                        Commencer
+                        Connexion
                     </Link>
                 </nav>
             </div>

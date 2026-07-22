@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHero from '@/Components/Landing/PageHero.vue';
 import ProductImage from '@/Components/Shop/ProductImage.vue';
@@ -20,22 +20,55 @@ type Product = {
     category: Category | null;
 };
 
+type PaginationLink = {
+    url: string | null;
+    label: string;
+    active: boolean;
+};
+
+type PaginatedProducts = {
+    data: Product[];
+    links: PaginationLink[];
+    current_page: number;
+    last_page: number;
+    from: number | null;
+    to: number | null;
+    total: number;
+};
+
 const props = defineProps<{
     categories: Category[];
-    products: Product[];
+    products: PaginatedProducts;
+    filters: { category: string | null };
     stats: { products: number; in_stock: number };
 }>();
 
-const selectedCategory = ref<string | null>(null);
 const addingId = ref<number | null>(null);
 
-const filteredProducts = computed(() => {
-    if (!selectedCategory.value) {
-        return props.products;
+function selectCategory(slug: string | null) {
+    router.get(
+        '/boutique',
+        slug ? { category: slug } : {},
+        {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+            only: ['products', 'filters', 'stats'],
+        },
+    );
+}
+
+function goToPage(url: string | null) {
+    if (!url) {
+        return;
     }
 
-    return props.products.filter((product) => product.category?.slug === selectedCategory.value);
-});
+    router.get(url, {}, {
+        preserveScroll: true,
+        preserveState: true,
+        only: ['products', 'filters', 'stats'],
+    });
+}
 
 function addToCart(product: Product) {
     if (!product.in_stock || addingId.value) {
@@ -54,6 +87,18 @@ function addToCart(product: Product) {
             },
         },
     );
+}
+
+function pageLabel(label: string): string {
+    if (label.includes('Previous') || label.includes('&laquo;')) {
+        return 'Précédent';
+    }
+
+    if (label.includes('Next') || label.includes('&raquo;')) {
+        return 'Suivant';
+    }
+
+    return label;
 }
 </script>
 
@@ -95,11 +140,11 @@ function addToCart(product: Product) {
                             type="button"
                             class="min-h-11 shrink-0 px-4 text-sm font-medium whitespace-nowrap transition"
                             :class="
-                                !selectedCategory
+                                !filters.category
                                     ? 'bg-forest-900 text-white'
                                     : 'border border-forest-900/15 text-forest-900 hover:border-forest-900'
                             "
-                            @click="selectedCategory = null"
+                            @click="selectCategory(null)"
                         >
                             Tous
                         </button>
@@ -109,11 +154,11 @@ function addToCart(product: Product) {
                             type="button"
                             class="min-h-11 shrink-0 px-4 text-sm font-medium whitespace-nowrap transition"
                             :class="
-                                selectedCategory === category.slug
+                                filters.category === category.slug
                                     ? 'bg-forest-900 text-white'
                                     : 'border border-forest-900/15 text-forest-900 hover:border-forest-900'
                             "
-                            @click="selectedCategory = category.slug"
+                            @click="selectCategory(category.slug)"
                         >
                             {{ category.name }}
                         </button>
@@ -121,11 +166,11 @@ function addToCart(product: Product) {
                 </div>
 
                 <div
-                    v-if="filteredProducts.length"
+                    v-if="products.data.length"
                     class="mt-8 grid gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3"
                 >
                     <article
-                        v-for="product in filteredProducts"
+                        v-for="product in products.data"
                         :key="product.id"
                         class="flex flex-col overflow-hidden border border-forest-900/10 bg-white transition hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-28px_rgba(15,46,36,0.35)]"
                     >
@@ -185,6 +230,32 @@ function addToCart(product: Product) {
 
                 <div v-else class="mt-10 border border-dashed border-forest-900/20 bg-white p-8 text-center sm:mt-12 sm:p-10">
                     <p class="text-ink-muted">Aucun produit dans cette catégorie pour le moment.</p>
+                </div>
+
+                <div
+                    v-if="products.last_page > 1"
+                    class="mt-10 flex flex-col items-center gap-4 sm:mt-12"
+                >
+                    <p class="text-sm text-ink-muted">
+                        {{ products.from }}–{{ products.to }} sur {{ products.total }}
+                    </p>
+                    <nav class="flex flex-wrap items-center justify-center gap-2" aria-label="Pagination">
+                        <button
+                            v-for="(link, index) in products.links"
+                            :key="`${link.label}-${index}`"
+                            type="button"
+                            class="min-h-10 min-w-10 px-3 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40"
+                            :class="
+                                link.active
+                                    ? 'bg-forest-900 text-white'
+                                    : 'border border-forest-900/15 text-forest-900 hover:border-forest-900'
+                            "
+                            :disabled="!link.url"
+                            :aria-current="link.active ? 'page' : undefined"
+                            @click="goToPage(link.url)"
+                        >
+                            {{ pageLabel(link.label) }}
+                        </button>                    </nav>
                 </div>
 
                 <div class="mt-10 flex flex-col gap-3 sm:mt-12 sm:flex-row sm:flex-wrap">

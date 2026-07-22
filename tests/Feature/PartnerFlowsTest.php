@@ -8,6 +8,8 @@ use App\Actions\Products\SubmitProductForReview;
 use App\Enums\ProductStatus;
 use App\Enums\UserRole;
 use App\Models\Category;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use App\Notifications\PartnerAccountCreated;
@@ -284,6 +286,87 @@ it('stores a partner product with a base64 image in the create payload', functio
         ->and(Storage::disk('public')->exists($product->image_path))->toBeTrue();
 });
 
+it('updates a partner product and can unpublish a published one', function () {
+    $partner = User::factory()->approvedPartner()->create();
+    $category = Category::factory()->create();
+    $otherCategory = Category::factory()->create();
+
+    $product = Product::factory()->create([
+        'category_id' => $category->id,
+        'user_id' => $partner->id,
+        'status' => ProductStatus::Published,
+        'name' => 'Attiéké publié',
+        'slug' => 'attieke-publie',
+        'price_cents' => 1000,
+        'stock_quantity' => 5,
+        'unit' => 'sachet',
+    ]);
+
+    $this->actingAs($partner)
+        ->put(route('partner.products.update', $product), [
+            'category_id' => $otherCategory->id,
+            'name' => 'Attiéké modifié',
+            'description' => 'Mis à jour',
+            'price' => 14.5,
+            'stock_quantity' => 8,
+            'unit' => 'kg',
+        ])
+        ->assertRedirect();
+
+    $product->refresh();
+
+    expect($product->name)->toBe('Attiéké modifié')
+        ->and($product->category_id)->toBe($otherCategory->id)
+        ->and($product->price_cents)->toBe(1450)
+        ->and($product->status)->toBe(ProductStatus::Published);
+
+    $this->actingAs($partner)
+        ->post(route('partner.products.unpublish', $product))
+        ->assertRedirect();
+
+    expect($product->refresh()->status)->toBe(ProductStatus::Archived);
+});
+
+it('lists partner orders that include their products', function () {
+    $partner = User::factory()->approvedPartner()->create();
+    $otherPartner = User::factory()->approvedPartner()->create();
+    $category = Category::factory()->create();
+
+    $ownProduct = Product::factory()->create([
+        'category_id' => $category->id,
+        'user_id' => $partner->id,
+        'status' => ProductStatus::Published,
+    ]);
+
+    $otherProduct = Product::factory()->create([
+        'category_id' => $category->id,
+        'user_id' => $otherPartner->id,
+        'status' => ProductStatus::Published,
+    ]);
+
+    $ownOrder = Order::factory()->create();
+    OrderItem::factory()->create([
+        'order_id' => $ownOrder->id,
+        'product_id' => $ownProduct->id,
+        'product_name' => $ownProduct->name,
+    ]);
+
+    $foreignOrder = Order::factory()->create();
+    OrderItem::factory()->create([
+        'order_id' => $foreignOrder->id,
+        'product_id' => $otherProduct->id,
+        'product_name' => $otherProduct->name,
+    ]);
+
+    $this->actingAs($partner)
+        ->get(route('partner.dashboard'))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('Partner/Dashboard')
+            ->has('orders', 1)
+            ->where('orders.0.reference', $ownOrder->reference));
+});
+
 it('only shows published products in the shop', function () {
     $category = Category::factory()->create();
     $partner = User::factory()->approvedPartner()->create();
@@ -308,7 +391,7 @@ it('only shows published products in the shop', function () {
         ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('Shop/Index')
-            ->where('products', fn ($products) => collect($products)->contains(
+            ->where('products.data', fn ($products) => collect($products)->contains(
                 fn ($product) => $product['slug'] === 'produit-public',
             ) && collect($products)->doesntContain(
                 fn ($product) => $product['slug'] === 'produit-en-revue',

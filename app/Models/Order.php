@@ -19,6 +19,13 @@ use Illuminate\Support\Str;
     'cargo_id',
     'guest_name',
     'guest_email',
+    'shipping_phone',
+    'shipping_line1',
+    'shipping_line2',
+    'shipping_city',
+    'shipping_province',
+    'shipping_postal_code',
+    'shipping_country',
     'type',
     'status',
     'subtotal_cents',
@@ -105,6 +112,23 @@ class Order extends Model
     public function customerEmail(): ?string
     {
         return $this->guest_email ?: $this->user?->email;
+    }
+
+    public function shippingAddressFormatted(): ?string
+    {
+        if (! filled($this->shipping_line1) || ! filled($this->shipping_city)) {
+            return null;
+        }
+
+        $parts = array_filter([
+            $this->shipping_line1,
+            $this->shipping_line2,
+            trim(($this->shipping_city ?? '').' '.($this->shipping_province ?? '').' '.($this->shipping_postal_code ?? '')),
+            $this->shipping_country === 'CA' ? 'Canada' : $this->shipping_country,
+            $this->shipping_phone ? 'Tél. '.$this->shipping_phone : null,
+        ], fn (?string $part): bool => filled($part));
+
+        return implode("\n", $parts);
     }
 
     public function totalFormatted(): string

@@ -40,6 +40,7 @@ const menuItems = computed(() => {
     }
 
     return [
+        { href: '/compte', label: 'Mon compte', description: 'Commandes et demandes' },
         { href: '/boutique', label: 'Boutique', description: 'Catalogue en ligne' },
         { href: '/panier', label: 'Panier', description: 'Vos articles' },
         { href: '/courses', label: 'Courses', description: 'Demandes personnalisées' },
@@ -64,7 +65,7 @@ function close() {
 
 function logout() {
     close();
-    router.post('/partenaires/deconnexion');
+    router.post(isPartner.value ? '/partenaires/deconnexion' : '/deconnexion');
 }
 
 function onDocumentClick(event: MouseEvent) {

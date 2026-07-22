@@ -4,10 +4,14 @@ namespace App\Http\Controllers\Partner;
 
 use App\Actions\Products\CreatePartnerProduct;
 use App\Actions\Products\SubmitProductForReview;
+use App\Actions\Products\UnpublishPartnerProduct;
+use App\Actions\Products\UpdatePartnerProduct;
 use App\Enums\ProductStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Partners\StorePartnerProductRequest;
+use App\Http\Requests\Partners\UpdatePartnerProductRequest;
 use App\Models\Category;
+use App\Models\Order;
 use App\Models\Product;
 use App\Support\ProductImageChunkUpload;
 use App\Support\ProductImageStorage;
@@ -42,14 +46,43 @@ class PartnerDashboardController extends Controller
             ->get()
             ->map(fn (Product $product) => [
                 'id' => $product->id,
+                'category_id' => $product->category_id,
                 'name' => $product->name,
+                'description' => $product->description,
                 'category' => $product->category?->name,
                 'price' => $product->priceFormatted(),
+                'price_amount' => round($product->price_cents / 100, 2),
                 'stock_quantity' => $product->stock_quantity,
                 'unit' => $product->unit,
                 'status' => $product->status->value,
                 'status_label' => $product->status->label(),
                 'image_url' => $product->imageUrl(),
+            ]);
+
+        $orders = Order::query()
+            ->with(['items' => fn ($query) => $query->whereHas(
+                'product',
+                fn ($productQuery) => $productQuery->where('user_id', $user->id),
+            )])
+            ->whereHas(
+                'items.product',
+                fn ($query) => $query->where('user_id', $user->id),
+            )
+            ->latest('placed_at')
+            ->limit(50)
+            ->get()
+            ->map(fn (Order $order) => [
+                'id' => $order->id,
+                'reference' => $order->reference,
+                'status' => $order->status->value,
+                'status_label' => $order->status->label(),
+                'total' => $order->totalFormatted(),
+                'placed_at' => $order->placed_at?->format('d/m/Y H:i'),
+                'items' => $order->items->map(fn ($item) => [
+                    'name' => $item->product_name,
+                    'quantity' => $item->quantity,
+                    'line_total' => number_format($item->line_total_cents / 100, 2, ',', ' ').' $',
+                ])->values(),
             ]);
 
         return Inertia::render('Partner/Dashboard', [
@@ -61,6 +94,7 @@ class PartnerDashboardController extends Controller
             ],
             'stats' => $stats,
             'products' => $products,
+            'orders' => $orders,
             'categories' => Category::query()
                 ->where('is_active', true)
                 ->orderBy('position')
@@ -173,6 +207,21 @@ class PartnerDashboardController extends Controller
         );
     }
 
+    public function updateProduct(
+        UpdatePartnerProductRequest $request,
+        Product $product,
+        UpdatePartnerProduct $action,
+    ): RedirectResponse {
+        abort_unless($product->isOwnedBy($request->user()), 403);
+
+        $product = $action->handle($product, $request->user(), $request->payload());
+
+        return back()->with(
+            'success',
+            "Produit « {$product->name} » mis à jour.",
+        );
+    }
+
     public function submitProduct(
         Request $request,
         Product $product,
@@ -185,6 +234,21 @@ class PartnerDashboardController extends Controller
         return back()->with(
             'success',
             "« {$product->name} » soumis pour validation Ôhéfê.",
+        );
+    }
+
+    public function unpublishProduct(
+        Request $request,
+        Product $product,
+        UnpublishPartnerProduct $action,
+    ): RedirectResponse {
+        abort_unless($product->isOwnedBy($request->user()), 403);
+
+        $action->handle($product, $request->user());
+
+        return back()->with(
+            'success',
+            "« {$product->name} » retiré de la boutique.",
         );
     }
 }

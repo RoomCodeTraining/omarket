@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Actions\Cart\AddProductToCart;
 use App\Actions\Cart\RemoveCartItem;
 use App\Actions\Cart\UpdateCartItem;
+use App\Actions\Orders\PlaceCartOrder;
+use App\Http\Requests\Cart\CheckoutCartRequest;
 use App\Http\Requests\Cart\StoreCartItemRequest;
 use App\Http\Requests\Cart\UpdateCartItemRequest;
 use App\Models\Product;
@@ -24,6 +26,7 @@ class CartController extends Controller
             'total' => number_format(Cart::totalCents() / 100, 2, ',', ' ').' $',
             'total_cents' => Cart::totalCents(),
             'count' => Cart::count(),
+            'can_checkout' => $items->isNotEmpty() && $items->every(fn (array $item) => $item['in_stock']),
         ]);
     }
 
@@ -47,5 +50,16 @@ class CartController extends Controller
         $action->handle($productId);
 
         return back()->with('success', 'Article retiré du panier.');
+    }
+
+    public function checkout(CheckoutCartRequest $request, PlaceCartOrder $action): RedirectResponse
+    {
+        $order = $action->handle($request->payload(), $request->user());
+
+        $request->session()->put('order_access.'.$order->id, $order->guest_email);
+
+        return redirect()
+            ->route('orders.show', $order)
+            ->with('success', "Commande {$order->reference} enregistrée.");
     }
 }

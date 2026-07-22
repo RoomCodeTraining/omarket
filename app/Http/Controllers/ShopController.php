@@ -4,25 +4,38 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ShopController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $categorySlug = $request->string('category')->toString();
+        $categorySlug = $categorySlug !== '' ? $categorySlug : null;
+
         $categories = Category::query()
             ->where('is_active', true)
             ->orderBy('position')
             ->get(['id', 'name', 'slug']);
 
-        $products = Product::query()
+        $baseQuery = Product::query()->published();
+
+        $products = (clone $baseQuery)
             ->with('category:id,name,slug')
-            ->published()
+            ->when(
+                $categorySlug,
+                fn ($query) => $query->whereHas(
+                    'category',
+                    fn ($categoryQuery) => $categoryQuery->where('slug', $categorySlug),
+                ),
+            )
             ->orderByDesc('is_featured')
             ->orderBy('name')
-            ->get()
-            ->map(fn (Product $product) => [
+            ->paginate(12)
+            ->withQueryString()
+            ->through(fn (Product $product) => [
                 'id' => $product->id,
                 'name' => $product->name,
                 'slug' => $product->slug,
@@ -40,9 +53,12 @@ class ShopController extends Controller
         return Inertia::render('Shop/Index', [
             'categories' => $categories,
             'products' => $products,
+            'filters' => [
+                'category' => $categorySlug,
+            ],
             'stats' => [
-                'products' => $products->count(),
-                'in_stock' => $products->where('in_stock', true)->count(),
+                'products' => (clone $baseQuery)->count(),
+                'in_stock' => (clone $baseQuery)->inStock()->count(),
             ],
         ]);
     }

@@ -62,6 +62,36 @@ class OrderForm
                         ->nullable()
                         ->columnSpanFull(),
                 ]),
+            Section::make('Livraison')
+                ->icon('heroicon-o-map-pin')
+                ->columns(2)
+                ->schema([
+                    TextInput::make('shipping_phone')
+                        ->label('Téléphone')
+                        ->tel()
+                        ->maxLength(40),
+                    TextInput::make('shipping_country')
+                        ->label('Pays')
+                        ->maxLength(2)
+                        ->default('CA'),
+                    TextInput::make('shipping_line1')
+                        ->label('Adresse')
+                        ->maxLength(160)
+                        ->columnSpanFull(),
+                    TextInput::make('shipping_line2')
+                        ->label('Complément')
+                        ->maxLength(160)
+                        ->columnSpanFull(),
+                    TextInput::make('shipping_city')
+                        ->label('Ville')
+                        ->maxLength(100),
+                    TextInput::make('shipping_province')
+                        ->label('Province')
+                        ->maxLength(80),
+                    TextInput::make('shipping_postal_code')
+                        ->label('Code postal')
+                        ->maxLength(20),
+                ]),
             Section::make('Montants')
                 ->description('Le sous-total est recalculé depuis les lignes. Les frais de port sont éditables.')
                 ->icon('heroicon-o-banknotes')

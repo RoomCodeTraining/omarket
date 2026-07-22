@@ -11,11 +11,16 @@ class StoreCustomRequestRequest extends FormRequest
         return true;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
+        $user = $this->user();
+
         return [
-            'guest_name' => ['required', 'string', 'max:120'],
-            'guest_email' => ['required', 'email', 'max:255'],
+            'guest_name' => [$user ? 'nullable' : 'required', 'string', 'max:120'],
+            'guest_email' => [$user ? 'nullable' : 'required', 'email', 'max:255'],
             'title' => ['required', 'string', 'max:160'],
             'description' => ['required', 'string', 'max:2000'],
             'quantity' => ['required', 'integer', 'min:1', 'max:100'],
@@ -23,9 +28,14 @@ class StoreCustomRequestRequest extends FormRequest
         ];
     }
 
+    /**
+     * @return array<string, string>
+     */
     public function messages(): array
     {
         return [
+            'guest_name.required' => 'Indiquez votre nom.',
+            'guest_email.required' => 'Indiquez votre e-mail.',
             'title.required' => 'Donnez un titre à votre demande.',
             'description.required' => 'Décrivez le produit recherché.',
         ];
@@ -36,11 +46,12 @@ class StoreCustomRequestRequest extends FormRequest
      */
     public function payload(): array
     {
+        $user = $this->user();
         $validated = $this->validated();
 
         return [
-            'guest_name' => $validated['guest_name'],
-            'guest_email' => $validated['guest_email'],
+            'guest_name' => $user?->name ?? (string) $validated['guest_name'],
+            'guest_email' => $user?->email ?? (string) $validated['guest_email'],
             'title' => $validated['title'],
             'description' => $validated['description'],
             'quantity' => (int) $validated['quantity'],
