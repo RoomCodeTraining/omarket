@@ -3,10 +3,12 @@
 namespace App\Actions\Courses;
 
 use App\Enums\CustomRequestStatus;
+use App\Enums\UserRole;
 use App\Models\CustomRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 final class SubmitCustomRequest
 {
@@ -18,14 +20,22 @@ final class SubmitCustomRequest
         $resolvedUser = $user;
 
         if (! $resolvedUser) {
-            $resolvedUser = User::query()->firstOrCreate(
-                ['email' => $data['guest_email']],
-                [
-                    'name' => $data['guest_name'],
-                    'password' => Hash::make(Str::random(32)),
-                    'is_admin' => false,
-                ],
-            );
+            $existing = User::query()->where('email', $data['guest_email'])->first();
+
+            if ($existing && $existing->role !== UserRole::Client) {
+                throw ValidationException::withMessages([
+                    'guest_email' => 'Cet e-mail est déjà utilisé pour un compte partenaire ou admin.',
+                ]);
+            }
+
+            $resolvedUser = $existing ?? User::query()->create([
+                'name' => $data['guest_name'],
+                'email' => $data['guest_email'],
+                'password' => Hash::make(Str::random(32)),
+                'role' => UserRole::Client,
+                'is_admin' => false,
+                'can_publish' => false,
+            ]);
         }
 
         return CustomRequest::query()->create([

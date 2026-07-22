@@ -1,9 +1,18 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import CartNavButton from '@/Components/Layout/CartNavButton.vue';
 import FlashMessage from '@/Components/Layout/FlashMessage.vue';
 import SiteFooter from '@/Components/Layout/SiteFooter.vue';
+import UserNavAvatar from '@/Components/Layout/UserNavAvatar.vue';
+
+type AuthUser = {
+    id: number;
+    name: string;
+    email: string;
+    role?: string | null;
+    can_publish?: boolean;
+};
 
 const page = usePage();
 const scrolled = ref(false);
@@ -13,11 +22,38 @@ const isHome = computed(() => page.url === '/' || page.url.split('?')[0] === '/'
 const useDarkNav = computed(() => isHome.value && !scrolled.value && !mobileOpen.value);
 const cartCount = computed(() => (page.props.cart as { count?: number } | undefined)?.count ?? 0);
 
-const navLinks = [
-    { href: '/boutique', label: 'Boutique' },
-    { href: '/arrivages', label: 'Arrivages' },
-    { href: '/courses', label: 'Courses' },
-] as const;
+const authUser = computed(
+    () => (page.props.auth as { user?: AuthUser | null } | undefined)?.user ?? null,
+);
+const isPartner = computed(() => authUser.value?.role === 'partner');
+
+const navLinks = computed(() => {
+    const app = page.props.app as
+        | {
+              partner_registration_enabled?: boolean;
+              courses_enabled?: boolean;
+              arrivals_enabled?: boolean;
+          }
+        | undefined;
+
+    const links: Array<{ href: string; label: string }> = [
+        { href: '/boutique', label: 'Boutique' },
+    ];
+
+    if (app?.arrivals_enabled !== false) {
+        links.push({ href: '/arrivages', label: 'Arrivages' });
+    }
+
+    if (app?.courses_enabled !== false) {
+        links.push({ href: '/courses', label: 'Courses' });
+    }
+
+    if (!authUser.value && app?.partner_registration_enabled !== false) {
+        links.push({ href: '/partenaires/inscription', label: 'Partenaires' });
+    }
+
+    return links;
+});
 
 function isActive(href: string): boolean {
     return page.url === href || page.url.startsWith(`${href}?`);
@@ -29,6 +65,11 @@ function onScroll() {
 
 function closeMobile() {
     mobileOpen.value = false;
+}
+
+function logout() {
+    closeMobile();
+    router.post('/partenaires/deconnexion');
 }
 
 function onKeydown(event: KeyboardEvent) {
@@ -107,13 +148,24 @@ onUnmounted(() => {
 
                 <div class="flex shrink-0 items-center gap-2 sm:gap-3">
                     <CartNavButton :dark="useDarkNav" @click="closeMobile" />
+
+                    <UserNavAvatar
+                        v-if="authUser"
+                        :name="authUser.name"
+                        :email="authUser.email"
+                        :role="authUser.role"
+                        :can-publish="authUser.can_publish"
+                        :dark="useDarkNav"
+                    />
                     <Link
+                        v-else
                         href="/boutique"
                         class="hidden rounded-sm bg-brass px-4 py-2.5 text-sm font-semibold text-forest-950 shadow-sm transition hover:bg-brass-light sm:inline-flex"
                         @click="closeMobile"
                     >
                         Commencer
                     </Link>
+
                     <button
                         type="button"
                         class="inline-flex h-11 w-11 items-center justify-center border text-sm font-medium transition md:hidden"
@@ -161,7 +213,40 @@ onUnmounted(() => {
                             {{ cartCount }}
                         </span>
                     </Link>
+
+                    <template v-if="authUser">
+                        <Link
+                            v-if="isPartner"
+                            href="/partenaires/espace"
+                            class="mt-2 flex min-h-11 items-center gap-3 bg-forest-900 px-4 text-sm font-semibold text-white"
+                            @click="closeMobile"
+                        >
+                            <span
+                                class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-brass text-xs font-bold text-forest-950"
+                                aria-hidden="true"
+                            >
+                                {{
+                                    authUser.name
+                                        .trim()
+                                        .split(/\s+/)
+                                        .slice(0, 2)
+                                        .map((part) => part[0] ?? '')
+                                        .join('')
+                                        .toUpperCase() || '?'
+                                }}
+                            </span>
+                            <span class="min-w-0 truncate">Mon espace</span>
+                        </Link>
+                        <button
+                            type="button"
+                            class="mt-2 flex min-h-11 w-full items-center justify-center border border-forest-900/15 px-4 text-sm font-semibold text-forest-900"
+                            @click="logout"
+                        >
+                            Se déconnecter
+                        </button>
+                    </template>
                     <Link
+                        v-else
                         href="/boutique"
                         class="mt-2 inline-flex min-h-11 items-center justify-center bg-brass px-4 text-sm font-semibold text-forest-950"
                         @click="closeMobile"

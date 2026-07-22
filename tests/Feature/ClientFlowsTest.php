@@ -2,6 +2,7 @@
 
 use App\Models\CargoItem;
 use App\Models\CustomRequest;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\Reservation;
 use Database\Seeders\CatalogSeeder;
@@ -26,7 +27,7 @@ it('adds a product to the cart', function () {
             ->has('items', 1));
 });
 
-it('reserves a cargo item and decrements remaining quantity', function () {
+it('reserves a cargo item and creates a linked cargo order', function () {
     $item = CargoItem::query()->whereColumn('quantity_reserved', '<', 'quantity_available')->firstOrFail();
     $before = $item->quantity_reserved;
 
@@ -37,8 +38,19 @@ it('reserves a cargo item and decrements remaining quantity', function () {
         'guest_email' => 'awa@example.com',
     ])->assertRedirect();
 
-    expect(Reservation::query()->count())->toBe(1);
-    expect($item->fresh()->quantity_reserved)->toBe($before + 2);
+    $reservation = Reservation::query()->first();
+
+    expect($reservation)->not->toBeNull()
+        ->and($item->fresh()->quantity_reserved)->toBe($before + 2)
+        ->and($reservation->order_id)->not->toBeNull();
+
+    $order = Order::query()->find($reservation->order_id);
+
+    expect($order)->not->toBeNull()
+        ->and($order->cargo_id)->toBe($item->cargo_id)
+        ->and($order->type->value)->toBe('cargo')
+        ->and($order->items)->toHaveCount(1)
+        ->and($order->items->first()->cargo_item_id)->toBe($item->id);
 });
 
 it('submits a custom request', function () {

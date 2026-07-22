@@ -34,11 +34,19 @@ alwaysApply: true
 
 ### Identity
 
-- **User** — client ; flag/role `is_admin` ou table roles minimale pour staff Filament.
+- **User** — rôle exclusif `client` | `partner` | `admin` (`UserRole`).
+- Partenaire : inscription libre ; `can_publish` false jusqu’à validation Ôhéfê.
+- Compte client et partenaire mutuellement exclusifs (même e-mail interdit pour un autre rôle).
 
-## Enums à prévoir
+### Partenaires (validé)
 
-`OrderStatus`, `CargoStatus`, `QuoteStatus`, `PaymentStatus`, `ProductStatus`.
+- Produit partenaire : `user_id` + statuts `draft` → `pending_review` → `published`.
+- Boutique n’affiche que `published`.
+- Commissions / split paiement : **pas encore cadrés** — ne pas implémenter.
+
+## Enums
+
+`UserRole`, `OrderStatus`, `CargoStatus`, `QuoteStatus`, `PaymentStatus`, `ProductStatus` (`draft` | `pending_review` | `published` | `archived`).
 
 ## Invariants
 

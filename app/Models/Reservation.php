@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'cargo_item_id',
+    'order_id',
     'user_id',
     'guest_name',
     'guest_email',
@@ -34,6 +35,11 @@ class Reservation extends Model
     public function cargoItem(): BelongsTo
     {
         return $this->belongsTo(CargoItem::class);
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
     }
 
     public function user(): BelongsTo

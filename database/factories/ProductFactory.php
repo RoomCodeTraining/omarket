@@ -30,12 +30,23 @@ class ProductFactory extends Factory
             'status' => ProductStatus::Published,
             'image_path' => null,
             'is_featured' => false,
+            'user_id' => null,
         ];
     }
 
     public function featured(): static
     {
         return $this->state(fn () => ['is_featured' => true]);
+    }
+
+    public function draft(): static
+    {
+        return $this->state(fn () => ['status' => ProductStatus::Draft]);
+    }
+
+    public function pendingReview(): static
+    {
+        return $this->state(fn () => ['status' => ProductStatus::PendingReview]);
     }
 
     public function outOfStock(): static

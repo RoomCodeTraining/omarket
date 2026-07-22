@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Support\Cart;
+use App\Support\SiteSettings;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -40,11 +41,23 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user()
-                    ? $request->user()->only(['id', 'name', 'email'])
+                    ? [
+                        'id' => $request->user()->id,
+                        'name' => $request->user()->name,
+                        'email' => $request->user()->email,
+                        'role' => $request->user()->role?->value,
+                        'can_publish' => $request->user()->canPublishProducts(),
+                    ]
                     : null,
             ],
             'app' => [
-                'name' => config('app.name'),
+                'name' => SiteSettings::storeName(),
+                'tagline' => SiteSettings::storeTagline(),
+                'announcement' => SiteSettings::announcementBanner(),
+                'partner_registration_enabled' => SiteSettings::partnerRegistrationEnabled(),
+                'courses_enabled' => SiteSettings::coursesEnabled(),
+                'arrivals_enabled' => SiteSettings::arrivalsEnabled(),
+                'currency' => SiteSettings::currencyCode(),
             ],
             'cart' => [
                 'count' => Cart::count(),
@@ -53,6 +66,7 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
             ],
+            'csrf_token' => csrf_token(),
         ];
     }
 }

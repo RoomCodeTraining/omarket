@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'category_id',
+    'user_id',
     'name',
     'slug',
     'description',
@@ -42,16 +43,35 @@ class Product extends Model
 
     public function imageUrl(): string
     {
-        if (filled($this->image_path)) {
-            return asset(ltrim((string) $this->image_path, '/'));
+        // Always use url() so DDEV_PRIMARY_URL / URL::forceRootUrl apply.
+        // Storage::disk('public')->url() is baked from APP_URL and goes stale when the port changes.
+        if (! filled($this->image_path)) {
+            return url(self::DEFAULT_IMAGE_PATH);
         }
 
-        return asset(self::DEFAULT_IMAGE_PATH);
+        $path = ltrim((string) $this->image_path, '/');
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        // Seeded / static assets under public/
+        if (str_starts_with($path, 'images/')) {
+            return url($path);
+        }
+
+        // Filament / partner uploads on the public disk → /storage/...
+        return url('storage/'.$path);
     }
 
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function cargoItems(): HasMany
@@ -62,6 +82,11 @@ class Product extends Model
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('status', ProductStatus::Published);
+    }
+
+    public function scopePendingReview(Builder $query): Builder
+    {
+        return $query->where('status', ProductStatus::PendingReview);
     }
 
     public function scopeInStock(Builder $query): Builder
@@ -77,5 +102,10 @@ class Product extends Model
     public function isAvailableLocally(): bool
     {
         return $this->status === ProductStatus::Published && $this->stock_quantity > 0;
+    }
+
+    public function isOwnedBy(User $user): bool
+    {
+        return $this->user_id !== null && $this->user_id === $user->id;
     }
 }

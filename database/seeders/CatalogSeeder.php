@@ -2,14 +2,20 @@
 
 namespace Database\Seeders;
 
+use App\Actions\Arrivals\ReserveCargoItem;
 use App\Enums\CargoStatus;
 use App\Enums\CustomRequestStatus;
+use App\Enums\OrderStatus;
+use App\Enums\OrderType;
 use App\Enums\ProductStatus;
 use App\Enums\QuoteStatus;
+use App\Enums\UserRole;
 use App\Models\Cargo;
 use App\Models\CargoItem;
 use App\Models\Category;
 use App\Models\CustomRequest;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Quote;
 use App\Models\User;
@@ -20,21 +26,27 @@ class CatalogSeeder extends Seeder
 {
     public function run(): void
     {
-        $admin = User::query()->updateOrCreate(
-            ['email' => 'admin@ohefe.test'],
-            [
-                'name' => 'Admin Ôhéfê',
-                'password' => 'password',
-                'is_admin' => true,
-            ],
-        );
+        $this->call(AdminUserSeeder::class);
 
         $client = User::query()->updateOrCreate(
             ['email' => 'client@ohefe.test'],
             [
                 'name' => 'Awa Kouassi',
                 'password' => 'password',
+                'role' => UserRole::Client,
                 'is_admin' => false,
+                'can_publish' => false,
+            ],
+        );
+
+        User::query()->updateOrCreate(
+            ['email' => 'partenaire@ohefe.test'],
+            [
+                'name' => 'Marché Abidjan Express',
+                'password' => 'password',
+                'role' => UserRole::Partner,
+                'is_admin' => false,
+                'can_publish' => false,
             ],
         );
 
@@ -158,6 +170,27 @@ class CatalogSeeder extends Seeder
             );
         }
 
+        $demoCargoItem = CargoItem::query()
+            ->where('cargo_id', $openCargo->id)
+            ->whereColumn('quantity_reserved', '<', 'quantity_available')
+            ->first();
+
+        if ($demoCargoItem && ! Order::query()->where('reference', 'OM-DEMO-CARGO')->exists()) {
+            app(ReserveCargoItem::class)->handle($demoCargoItem, [
+                'guest_name' => $client->name,
+                'guest_email' => $client->email,
+                'quantity' => 1,
+            ], $client);
+
+            Order::query()
+                ->where('cargo_id', $openCargo->id)
+                ->where('guest_email', $client->email)
+                ->latest('id')
+                ->first()
+                ?->forceFill(['reference' => 'OM-DEMO-CARGO'])
+                ->save();
+        }
+
         // Ensure upcoming cargo is referenced (for admin later)
         unset($upcomingCargo);
 
@@ -197,6 +230,44 @@ class CatalogSeeder extends Seeder
             ],
         );
 
-        $this->command?->info("Seeded catalog. Admin: {$admin->email} / Client: {$client->email} (password)");
+        $demoProduct = Product::query()->where('slug', 'attieke')->first()
+            ?? Product::query()->whereNull('user_id')->first();
+
+        if ($demoProduct) {
+            $order = Order::query()->updateOrCreate(
+                ['reference' => 'OM-DEMO-STOCK'],
+                [
+                    'user_id' => $client->id,
+                    'guest_name' => $client->name,
+                    'guest_email' => $client->email,
+                    'type' => OrderType::Stock,
+                    'status' => OrderStatus::Preparing,
+                    'subtotal_cents' => 0,
+                    'shipping_cents' => 800,
+                    'total_cents' => 0,
+                    'currency' => 'CAD',
+                    'notes' => 'Commande démo stock local.',
+                    'placed_at' => now()->subDay(),
+                ],
+            );
+
+            OrderItem::query()->updateOrCreate(
+                [
+                    'order_id' => $order->id,
+                    'product_id' => $demoProduct->id,
+                ],
+                [
+                    'product_name' => $demoProduct->name,
+                    'product_unit' => $demoProduct->unit,
+                    'unit_price_cents' => $demoProduct->price_cents,
+                    'quantity' => 2,
+                    'line_total_cents' => $demoProduct->price_cents * 2,
+                ],
+            );
+
+            $order->recalculateTotals();
+        }
+
+        $this->command?->info("Seeded catalog. Client démo: {$client->email} / password");
     }
 }

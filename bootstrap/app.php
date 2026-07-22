@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\EnsurePartner;
+use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -12,9 +14,20 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(at: '*');
+
         $middleware->web(append: [
-            \App\Http\Middleware\HandleInertiaRequests::class,
+            HandleInertiaRequests::class,
         ]);
+
+        $middleware->alias([
+            'partner' => EnsurePartner::class,
+        ]);
+
+        $middleware->redirectGuestsTo(fn () => route('partner.login'));
+        $middleware->redirectUsersTo(fn (Request $request) => $request->user()?->isPartner()
+            ? route('partner.dashboard')
+            : route('home'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

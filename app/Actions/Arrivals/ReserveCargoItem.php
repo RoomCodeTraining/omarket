@@ -3,8 +3,12 @@
 namespace App\Actions\Arrivals;
 
 use App\Enums\CargoStatus;
+use App\Enums\OrderStatus;
+use App\Enums\OrderType;
 use App\Enums\ReservationStatus;
 use App\Models\CargoItem;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Reservation;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +25,7 @@ final class ReserveCargoItem
         return DB::transaction(function () use ($cargoItem, $data, $user) {
             /** @var CargoItem $item */
             $item = CargoItem::query()
-                ->with('cargo')
+                ->with(['cargo', 'product'])
                 ->lockForUpdate()
                 ->findOrFail($cargoItem->id);
 
@@ -47,8 +51,38 @@ final class ReserveCargoItem
 
             $item->increment('quantity_reserved', $quantity);
 
-            return Reservation::query()->create([
+            $lineTotal = $item->unit_price_cents * $quantity;
+            $product = $item->product;
+
+            $order = Order::query()->create([
+                'user_id' => $user?->id,
+                'cargo_id' => $item->cargo_id,
+                'guest_name' => $data['guest_name'],
+                'guest_email' => $data['guest_email'],
+                'type' => OrderType::Cargo,
+                'status' => OrderStatus::PaymentConfirmed,
+                'subtotal_cents' => $lineTotal,
+                'shipping_cents' => 0,
+                'total_cents' => $lineTotal,
+                'currency' => 'CAD',
+                'notes' => "Réservation arrivage {$item->cargo?->code}",
+                'placed_at' => now(),
+            ]);
+
+            OrderItem::query()->create([
+                'order_id' => $order->id,
+                'product_id' => $item->product_id,
+                'product_name' => $product?->name ?? 'Produit arrivage',
+                'product_unit' => $product?->unit ?? 'unité',
+                'unit_price_cents' => $item->unit_price_cents,
+                'quantity' => $quantity,
+                'line_total_cents' => $lineTotal,
                 'cargo_item_id' => $item->id,
+            ]);
+
+            $reservation = Reservation::query()->create([
+                'cargo_item_id' => $item->id,
+                'order_id' => $order->id,
                 'user_id' => $user?->id,
                 'guest_name' => $data['guest_name'],
                 'guest_email' => $data['guest_email'],
@@ -57,6 +91,8 @@ final class ReserveCargoItem
                 'status' => ReservationStatus::Confirmed,
                 'reference' => 'RSV-'.strtoupper(Str::random(8)),
             ]);
+
+            return $reservation;
         });
     }
 }
