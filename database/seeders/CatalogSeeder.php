@@ -214,6 +214,14 @@ class CatalogSeeder extends Seeder
             ],
         );
 
+        $request->items()->delete();
+        $request->items()->create([
+            'label' => 'Poisson capitaine fumé',
+            'quantity' => 2,
+            'budget_cents' => 8000,
+            'sort_order' => 0,
+        ]);
+
         Quote::query()->updateOrCreate(
             ['custom_request_id' => $request->id],
             [
@@ -224,7 +232,7 @@ class CatalogSeeder extends Seeder
             ],
         );
 
-        CustomRequest::query()->updateOrCreate(
+        $gombo = CustomRequest::query()->updateOrCreate(
             [
                 'user_id' => $client->id,
                 'title' => 'Feuilles de gombo séchées',
@@ -237,6 +245,14 @@ class CatalogSeeder extends Seeder
                 'status' => CustomRequestStatus::Submitted,
             ],
         );
+
+        $gombo->items()->delete();
+        $gombo->items()->create([
+            'label' => 'Feuilles de gombo séchées',
+            'quantity' => 3,
+            'budget_cents' => 3500,
+            'sort_order' => 0,
+        ]);
 
         $demoProduct = Product::query()->where('slug', 'attieke')->first()
             ?? Product::query()->whereNull('user_id')->first();

@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\Clients\RegisterClient;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Clients\RegisterClientRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +18,23 @@ class ClientAuthController extends Controller
     public function showLogin(): Response
     {
         return Inertia::render('Auth/ClientLogin');
+    }
+
+    public function showRegister(): Response
+    {
+        return Inertia::render('Auth/ClientRegister');
+    }
+
+    public function register(RegisterClientRequest $request, RegisterClient $action): RedirectResponse
+    {
+        $client = $action->handle($request->payload());
+
+        Auth::login($client);
+        $request->session()->regenerate();
+
+        return redirect()
+            ->route('account.index')
+            ->with('success', 'Compte créé. Bienvenue sur Ôhéfê Market.');
     }
 
     public function login(LoginRequest $request): RedirectResponse

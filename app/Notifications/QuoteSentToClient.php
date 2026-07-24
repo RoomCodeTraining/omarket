@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Notifications;
 
 use App\Models\Quote;
@@ -22,26 +24,40 @@ final class QuoteSentToClient extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $quote = $this->quote->loadMissing('customRequest');
+        $quote = $this->quote->loadMissing(['customRequest.items', 'customRequest.user']);
         $request = $quote->customRequest;
         $appName = SiteSettings::storeName();
-        $name = $notifiable->name ?? $request?->guest_name ?? 'Client';
+        $name = $notifiable->name
+            ?? $request?->guest_name
+            ?? $request?->user?->name
+            ?? 'Client';
 
-        return (new MailMessage)
+        $mail = (new MailMessage)
             ->subject("Votre devis course — {$request?->title}")
             ->greeting("Bonjour {$name},")
             ->line("Nous avons préparé un devis pour votre course « {$request?->title} » sur {$appName}.")
-            ->line('Montant : '.$quote->amountFormatted())
-            ->when(
-                filled($quote->message),
-                fn (MailMessage $mail) => $mail->line($quote->message),
-            )
-            ->when(
-                $quote->valid_until,
-                fn (MailMessage $mail) => $mail->line('Valable jusqu’au '.$quote->valid_until->format('d/m/Y').'.'),
-            )
-            ->action('Voir les courses', url('/courses'))
-            ->line('Répondez à cet e-mail ou contactez-nous pour accepter ou poser une question.')
+            ->line('Montant du devis : '.$quote->amountFormatted());
+
+        if ($request !== null) {
+            foreach ($request->items as $item) {
+                $budget = $item->budgetFormatted();
+                $mail->line($budget !== null
+                    ? "• {$item->label} × {$item->quantity} (budget indiqué {$budget})"
+                    : "• {$item->label} × {$item->quantity}");
+            }
+        }
+
+        if (filled($quote->message)) {
+            $mail->line($quote->message);
+        }
+
+        if ($quote->valid_until) {
+            $mail->line('Valable jusqu’au '.$quote->valid_until->format('d/m/Y').'.');
+        }
+
+        return $mail
+            ->action('Voir mon compte', url('/compte'))
+            ->line('Répondez à cet e-mail ou contactez-nous pour accepter le devis ou poser une question.')
             ->salutation("L’équipe {$appName}");
     }
 }

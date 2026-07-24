@@ -8,7 +8,11 @@ use App\Enums\CustomRequestStatus;
 use App\Enums\UserRole;
 use App\Models\CustomRequest;
 use App\Models\User;
+use App\Notifications\CustomRequestSubmittedForTeam;
+use App\Support\SiteSettings;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -16,10 +20,8 @@ final class SubmitCustomRequest
 {
     /**
      * @param  array{
-     *     title: string,
-     *     description: string,
-     *     quantity: int,
-     *     budget_cents?: int|null,
+     *     items: list<array{label: string, quantity: int, budget_cents?: int|null}>,
+     *     description?: string|null,
      *     guest_name: string,
      *     guest_email: string,
      *     has_supplier: bool,
@@ -58,18 +60,62 @@ final class SubmitCustomRequest
             ]);
         }
 
-        return CustomRequest::query()->create([
-            'user_id' => $resolvedUser->id,
-            'guest_name' => $data['guest_name'],
-            'guest_email' => $data['guest_email'],
-            'title' => $data['title'],
-            'description' => $data['description'],
-            'quantity' => $data['quantity'],
-            'budget_cents' => $data['budget_cents'] ?? null,
-            'has_supplier' => $hasSupplier,
-            'supplier_name' => $hasSupplier ? ($data['supplier_name'] ?? null) : null,
-            'supplier_contact' => $hasSupplier ? ($data['supplier_contact'] ?? null) : null,
-            'status' => CustomRequestStatus::Submitted,
-        ]);
+        $items = array_values($data['items'] ?? []);
+
+        if ($items === []) {
+            throw ValidationException::withMessages([
+                'items' => 'Ajoutez au moins un produit à votre demande.',
+            ]);
+        }
+
+        $notes = trim((string) ($data['description'] ?? ''));
+        $aggregates = CustomRequest::aggregatesFromItems($items, $notes !== '' ? $notes : null);
+
+        $request = DB::transaction(function () use ($data, $resolvedUser, $hasSupplier, $items, $aggregates): CustomRequest {
+            $request = CustomRequest::query()->create([
+                'user_id' => $resolvedUser->id,
+                'guest_name' => $data['guest_name'],
+                'guest_email' => $data['guest_email'],
+                'title' => $aggregates['title'],
+                'description' => $aggregates['description'],
+                'quantity' => $aggregates['quantity'],
+                'budget_cents' => $aggregates['budget_cents'],
+                'has_supplier' => $hasSupplier,
+                'supplier_name' => $hasSupplier ? ($data['supplier_name'] ?? null) : null,
+                'supplier_contact' => $hasSupplier ? ($data['supplier_contact'] ?? null) : null,
+                'status' => CustomRequestStatus::Submitted,
+            ]);
+
+            foreach ($items as $index => $item) {
+                $request->items()->create([
+                    'label' => $item['label'],
+                    'quantity' => max(1, (int) $item['quantity']),
+                    'budget_cents' => $item['budget_cents'] ?? null,
+                    'sort_order' => $index,
+                ]);
+            }
+
+            return $request->load('items');
+        });
+
+        $this->notifyTeam($request);
+
+        return $request;
+    }
+
+    private function notifyTeam(CustomRequest $request): void
+    {
+        $admins = User::query()->admins()->get();
+
+        if ($admins->isNotEmpty()) {
+            Notification::send($admins, new CustomRequestSubmittedForTeam($request));
+        }
+
+        $support = SiteSettings::supportEmail();
+
+        if ($support !== '' && $admins->doesntContain(fn (User $admin) => $admin->email === $support)) {
+            Notification::route('mail', $support)
+                ->notify(new CustomRequestSubmittedForTeam($request));
+        }
     }
 }

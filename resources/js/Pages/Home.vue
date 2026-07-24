@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import HeroSlider, { type HeroSlide } from '@/Components/Landing/HeroSlider.vue';
@@ -27,6 +27,11 @@ const props = defineProps<{
     } | null;
     featuredProducts?: FeaturedProduct[];
 }>();
+
+const page = usePage();
+const storeName = computed(
+    () => (page.props.app as { name?: string } | undefined)?.name ?? 'Ôhéfê Market',
+);
 
 const activeSlide = ref(0);
 const addingId = ref<number | null>(null);
@@ -140,7 +145,7 @@ function addToCart(product: FeaturedProduct) {
                 <h1
                     class="animate-fade-up animation-delay-150 font-display text-[clamp(2.15rem,8vw,5.5rem)] leading-[1.08] text-white sm:mt-5 sm:leading-[0.95] md:leading-[0.92]"
                 >
-                    Ôhéfê Market
+                    {{ storeName }}
                 </h1>
 
                 <p

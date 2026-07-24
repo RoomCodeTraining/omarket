@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CustomRequests\Schemas;
 
 use App\Enums\CustomRequestStatus;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -19,6 +20,7 @@ class CustomRequestForm
             Section::make('Client')
                 ->description('Coordonnées fournies avec la demande.')
                 ->icon('heroicon-o-user')
+                ->columnSpanFull()
                 ->columns(2)
                 ->schema([
                     TextInput::make('guest_name')
@@ -36,33 +38,64 @@ class CustomRequestForm
                         ->nullable()
                         ->helperText('Optionnel — compte Laravel associé.'),
                 ]),
-            Section::make('Demande')
-                ->description('Produit recherché et contraintes client.')
+            Section::make('Produits demandés')
+                ->description('Chaque ligne : libellé, quantité et budget indicatif.')
                 ->icon('heroicon-o-shopping-bag')
-                ->columns(2)
+                ->columnSpanFull()
                 ->schema([
-                    TextInput::make('title')
-                        ->label('Titre')
-                        ->required()
-                        ->maxLength(160)
+                    Repeater::make('items')
+                        ->relationship()
+                        ->label('Produits')
+                        ->schema([
+                            TextInput::make('label')
+                                ->label('Libellé')
+                                ->required()
+                                ->maxLength(160)
+                                ->columnSpan(2),
+                            TextInput::make('quantity')
+                                ->label('Quantité')
+                                ->numeric()
+                                ->required()
+                                ->minValue(1)
+                                ->default(1),
+                            TextInput::make('budget_cents')
+                                ->label('Budget (cents CAD)')
+                                ->numeric()
+                                ->minValue(0)
+                                ->prefix('¢')
+                                ->helperText('Ex. 4000 = 40,00 $'),
+                        ])
+                        ->columns(4)
+                        ->orderColumn('sort_order')
+                        ->defaultItems(1)
+                        ->minItems(1)
+                        ->addActionLabel('Ajouter un produit')
+                        ->itemLabel(fn (array $state): ?string => $state['label'] ?? 'Produit')
                         ->columnSpanFull(),
                     Textarea::make('description')
-                        ->label('Description')
+                        ->label('Notes')
+                        ->rows(4)
+                        ->columnSpanFull(),
+                    TextInput::make('title')
+                        ->label('Titre résumé')
                         ->required()
-                        ->rows(5)
+                        ->maxLength(160)
+                        ->helperText('Recalculé automatiquement après enregistrement des lignes.')
                         ->columnSpanFull(),
                     TextInput::make('quantity')
-                        ->label('Quantité')
+                        ->label('Quantité totale')
                         ->numeric()
                         ->required()
                         ->minValue(1)
-                        ->default(1),
+                        ->disabled()
+                        ->dehydrated(),
                     TextInput::make('budget_cents')
-                        ->label('Budget indicatif (cents CAD)')
+                        ->label('Budget total (cents CAD)')
                         ->numeric()
                         ->minValue(0)
                         ->prefix('¢')
-                        ->helperText('Ex. 8000 = 80,00 $ — laissez vide si non précisé.'),
+                        ->disabled()
+                        ->dehydrated(),
                 ]),
             Section::make('Fournisseur')
                 ->description('Indiqué par le client à la création.')

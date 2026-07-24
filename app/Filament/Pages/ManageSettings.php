@@ -5,18 +5,20 @@ namespace App\Filament\Pages;
 use App\Support\SiteSettings;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
-use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Form;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
-use Filament\Support\Enums\Alignment;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Storage;
 use UnitEnum;
 
 /**
@@ -43,7 +45,13 @@ class ManageSettings extends Page
 
     public function mount(): void
     {
-        $this->form->fill(SiteSettings::all());
+        $settings = SiteSettings::all();
+
+        if (($settings['brand_logo'] ?? '') === '') {
+            $settings['brand_logo'] = null;
+        }
+
+        $this->form->fill($settings);
     }
 
     public function defaultForm(Schema $schema): Schema
@@ -55,6 +63,35 @@ class ManageSettings extends Page
     public function form(Schema $schema): Schema
     {
         return $schema->components([
+            Section::make('Apparence')
+                ->description('Logo et couleur primaire — appliqués à la boutique et à l’admin sans déploiement.')
+                ->icon('heroicon-o-swatch')
+                ->columns(2)
+                ->schema([
+                    FileUpload::make('brand_logo')
+                        ->label('Logo')
+                        ->image()
+                        ->disk('public')
+                        ->directory('branding')
+                        ->visibility('public')
+                        ->maxSize(2048)
+                        ->acceptedFileTypes([
+                            'image/jpeg',
+                            'image/png',
+                            'image/webp',
+                            'image/svg+xml',
+                        ])
+                        ->helperText('PNG, SVG ou WebP recommandé. Hauteur idéale ~80–120 px.')
+                        ->columnSpanFull(),
+                    ColorPicker::make('primary_color')
+                        ->label('Couleur primaire')
+                        ->hex()
+                        ->helperText('Boutons, liens et identité visuelle (boutique + admin).')
+                        ->required(),
+                ])
+                ->footerActions([
+                    $this->sectionSaveAction('saveAppearance', 'Apparence enregistrée'),
+                ]),
             Section::make('Boutique Ôhéfê — identité')
                 ->description('Paramètres de la boutique gérée directement par l’équipe.')
                 ->icon('heroicon-o-building-storefront')
@@ -76,9 +113,12 @@ class ManageSettings extends Page
                         ->label('Unité produit catalogue')
                         ->required()
                         ->maxLength(40),
+                ])
+                ->footerActions([
+                    $this->sectionSaveAction('saveIdentity', 'Identité enregistrée'),
                 ]),
             Section::make('Boutique Ôhéfê — contact & communication')
-                ->description('Coordonnées et message affiché côté storefront.')
+                ->description('Coordonnées de la boutique.')
                 ->icon('heroicon-o-envelope')
                 ->columns(2)
                 ->schema([
@@ -96,11 +136,9 @@ class ManageSettings extends Page
                         ->label('Téléphone')
                         ->tel()
                         ->maxLength(40),
-                    Textarea::make('announcement_banner')
-                        ->label('Bannière d’annonce boutique')
-                        ->rows(3)
-                        ->helperText('Message optionnel pour le storefront (vide = masqué).')
-                        ->columnSpanFull(),
+                ])
+                ->footerActions([
+                    $this->sectionSaveAction('saveContact', 'Contact enregistré'),
                 ]),
             Section::make('Boutique Ôhéfê — opérations')
                 ->description('Modules et seuils opérés par l’admin (hors validation partenaires).')
@@ -125,6 +163,9 @@ class ManageSettings extends Page
                         ->label('Compte requis pour commander')
                         ->helperText('Si activé, le client doit être connecté ou créer un compte pour valider une commande boutique.')
                         ->inline(false),
+                ])
+                ->footerActions([
+                    $this->sectionSaveAction('saveOperations', 'Opérations enregistrées'),
                 ]),
             Section::make('Entrepôt — dépôt partenaires')
                 ->description('Adresse communiquée aux partenaires pour déposer le stock avant l’arrivée du cargo.')
@@ -170,6 +211,9 @@ class ManageSettings extends Page
                         ->label('Consignes de dépôt')
                         ->rows(3)
                         ->columnSpanFull(),
+                ])
+                ->footerActions([
+                    $this->sectionSaveAction('saveWarehouse', 'Entrepôt enregistré'),
                 ]),
             Section::make('Partenaires')
                 ->description('Réglages du canal partenaires — distinct de la boutique catalogue.')
@@ -180,6 +224,9 @@ class ManageSettings extends Page
                         ->label('Inscription partenaires ouverte')
                         ->helperText('Active / coupe /partenaires/inscription. N’affecte pas le catalogue Ôhéfê.')
                         ->inline(false),
+                ])
+                ->footerActions([
+                    $this->sectionSaveAction('savePartners', 'Partenaires enregistrés'),
                 ]),
         ]);
     }
@@ -188,52 +235,99 @@ class ManageSettings extends Page
     {
         return $schema->components([
             Form::make([EmbeddedSchema::make('form')])
-                ->id('form')
-                ->livewireSubmitHandler('save')
-                ->footer([
-                    Actions::make([
-                        Action::make('save')
-                            ->label('Enregistrer')
-                            ->submit('save')
-                            ->keyBindings(['mod+s']),
-                    ])->alignment(Alignment::Start),
-                ]),
+                ->id('form'),
         ]);
     }
 
-    public function save(): void
+    private function sectionSaveAction(string $name, string $successTitle): Action
     {
-        $data = $this->form->getState();
+        return Action::make($name)
+            ->label('Enregistrer cette section')
+            ->action(function (Section $component) use ($successTitle): void {
+                $this->saveSection($component, $successTitle);
+            });
+    }
 
-        SiteSettings::putMany([
-            'store_name' => $data['store_name'],
-            'store_tagline' => $data['store_tagline'] ?? '',
-            'contact_email' => $data['contact_email'],
-            'support_email' => $data['support_email'],
-            'contact_phone' => $data['contact_phone'] ?? '',
-            'currency_code' => strtoupper((string) $data['currency_code']),
-            'low_stock_threshold' => (int) $data['low_stock_threshold'],
-            'partner_registration_enabled' => (bool) ($data['partner_registration_enabled'] ?? false),
-            'courses_enabled' => (bool) ($data['courses_enabled'] ?? false),
-            'arrivals_enabled' => (bool) ($data['arrivals_enabled'] ?? false),
-            'checkout_requires_account' => (bool) ($data['checkout_requires_account'] ?? false),
-            'warehouse_name' => $data['warehouse_name'] ?? '',
-            'warehouse_line1' => $data['warehouse_line1'] ?? '',
-            'warehouse_line2' => $data['warehouse_line2'] ?? '',
-            'warehouse_city' => $data['warehouse_city'] ?? '',
-            'warehouse_province' => $data['warehouse_province'] ?? '',
-            'warehouse_postal_code' => $data['warehouse_postal_code'] ?? '',
-            'warehouse_country' => strtoupper((string) ($data['warehouse_country'] ?? 'CA')),
-            'warehouse_phone' => $data['warehouse_phone'] ?? '',
-            'warehouse_notes' => $data['warehouse_notes'] ?? '',
-            'partner_deposit_reminder_days' => (int) ($data['partner_deposit_reminder_days'] ?? 3),
-            'announcement_banner' => $data['announcement_banner'] ?? '',
-            'default_product_unit' => $data['default_product_unit'],
-        ]);
+    private function saveSection(Section $component, string $successTitle): void
+    {
+        $oldContainer = $component->getContainer();
+
+        $data = Schema::make($this)
+            ->components([$component])
+            ->statePath('data')
+            ->getState();
+
+        $component->container($oldContainer);
+
+        $payload = $this->normalizeSectionData($data);
+
+        if (array_key_exists('brand_logo', $payload)) {
+            $payload['brand_logo'] = $this->syncBrandLogo($payload['brand_logo']);
+        }
+
+        if (array_key_exists('currency_code', $payload)) {
+            $payload['currency_code'] = strtoupper((string) $payload['currency_code']);
+        }
+
+        if (array_key_exists('warehouse_country', $payload)) {
+            $payload['warehouse_country'] = strtoupper((string) ($payload['warehouse_country'] ?: 'CA'));
+        }
+
+        foreach (['low_stock_threshold', 'partner_deposit_reminder_days'] as $intKey) {
+            if (array_key_exists($intKey, $payload)) {
+                $payload[$intKey] = (int) $payload[$intKey];
+            }
+        }
+
+        foreach ([
+            'partner_registration_enabled',
+            'courses_enabled',
+            'arrivals_enabled',
+            'checkout_requires_account',
+        ] as $boolKey) {
+            if (array_key_exists($boolKey, $payload)) {
+                $payload[$boolKey] = (bool) $payload[$boolKey];
+            }
+        }
+
+        if (array_key_exists('primary_color', $payload)) {
+            $color = (string) $payload['primary_color'];
+            $payload['primary_color'] = preg_match('/^#[A-Fa-f0-9]{6}$/', $color) === 1
+                ? strtolower($color)
+                : SiteSettings::primaryColor();
+        }
+
+        SiteSettings::putMany($payload);
 
         Notification::make()
-            ->title('Réglages enregistrés')
+            ->title($successTitle)
             ->success()
             ->send();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function normalizeSectionData(array $data): array
+    {
+        $allowed = array_flip(array_keys(SiteSettings::defaults()));
+
+        return array_intersect_key($data, $allowed);
+    }
+
+    private function syncBrandLogo(mixed $newPath): string
+    {
+        $path = is_array($newPath)
+            ? (string) (Arr::first($newPath) ?? '')
+            : (string) ($newPath ?? '');
+
+        $previous = (string) SiteSettings::get('brand_logo');
+
+        if ($previous !== '' && $previous !== $path && Storage::disk('public')->exists($previous)) {
+            Storage::disk('public')->delete($previous);
+        }
+
+        return $path;
     }
 }

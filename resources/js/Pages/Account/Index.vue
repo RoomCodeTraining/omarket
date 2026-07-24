@@ -14,12 +14,19 @@ type OrderRow = {
     items_count: number;
 };
 
+type CustomRequestItemRow = {
+    label: string;
+    quantity: number;
+    budget: string | null;
+};
+
 type CustomRequestRow = {
     id: number;
     title: string;
     description: string;
     quantity: number;
     budget: string | null;
+    items: CustomRequestItemRow[];
     status: string;
     status_label: string;
     created_at: string | null;
@@ -162,10 +169,18 @@ function statusTone(status: string): string {
                                 <div class="min-w-0">
                                     <p class="font-medium text-forest-900">{{ request.title }}</p>
                                     <p class="mt-1 text-sm text-ink-muted">
-                                        {{ request.created_at }} · qty {{ request.quantity }}
-                                        <span v-if="request.budget"> · budget {{ request.budget }}</span>
+                                        {{ request.created_at }} · {{ request.items.length }} produit{{ request.items.length > 1 ? 's' : '' }}
+                                        <span v-if="request.budget"> · budget total {{ request.budget }}</span>
                                     </p>
-                                    <p class="mt-2 line-clamp-2 text-sm text-ink-muted">{{ request.description }}</p>
+                                    <ul v-if="request.items.length" class="mt-2 space-y-1 text-sm text-ink-muted">
+                                        <li v-for="(item, index) in request.items" :key="index">
+                                            {{ item.label }} × {{ item.quantity }}
+                                            <span v-if="item.budget"> · {{ item.budget }}</span>
+                                        </li>
+                                    </ul>
+                                    <p v-else-if="request.description" class="mt-2 line-clamp-2 text-sm text-ink-muted">
+                                        {{ request.description }}
+                                    </p>
                                     <p class="mt-2 text-xs font-medium" :class="statusTone(request.status)">
                                         {{ request.status_label }}
                                     </p>

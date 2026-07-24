@@ -6,8 +6,11 @@ use App\Enums\CargoStatus;
 use App\Enums\OrderType;
 use App\Models\Cargo;
 use App\Models\CargoItem;
+use App\Models\Order;
 use App\Models\Product;
+use App\Models\User;
 use App\Support\CargoCart;
+use App\Support\SiteSettings;
 use Illuminate\Validation\ValidationException;
 
 it('adds cargo items to a mono-cargo cart and checks out as one order', function () {
@@ -93,4 +96,42 @@ it('renders arrivals with cargo cards and boutique products', function () {
             ->where('cargos.0.products_count', 1)
             ->has('products', 1)
             ->where('products.0.cargo_code', $cargo->code));
+});
+
+it('lets an authenticated client checkout the cargo cart without a password', function () {
+    SiteSettings::set('checkout_requires_account', true);
+
+    $client = User::factory()->create();
+    $cargo = Cargo::factory()->open()->create();
+    $product = Product::factory()->create();
+    $item = CargoItem::factory()->create([
+        'cargo_id' => $cargo->id,
+        'product_id' => $product->id,
+        'quantity_available' => 5,
+        'quantity_reserved' => 0,
+        'unit_price_cents' => 1500,
+    ]);
+
+    $this->actingAs($client)
+        ->post(route('cargo-cart.store'), [
+            'cargo_item_id' => $item->id,
+            'quantity' => 2,
+        ])
+        ->assertRedirect();
+
+    $this->actingAs($client)
+        ->post(route('cargo-cart.checkout'), [
+            'create_account' => true,
+            'password' => '',
+            'notes' => 'Client connecté',
+        ])
+        ->assertRedirect();
+
+    $order = Order::query()->where('user_id', $client->id)->latest('id')->first();
+
+    expect($order)->not->toBeNull()
+        ->and($order->type)->toBe(OrderType::Cargo)
+        ->and($order->cargo_id)->toBe($cargo->id)
+        ->and($order->guest_email)->toBe($client->email)
+        ->and($item->fresh()->quantity_reserved)->toBe(2);
 });

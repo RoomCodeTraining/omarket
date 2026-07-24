@@ -5,7 +5,12 @@ import { computed } from 'vue';
 const page = usePage();
 const year = new Date().getFullYear();
 
-const appName = computed(() => (page.props.app as { name?: string } | undefined)?.name ?? 'Ôhéfê Market');
+const app = computed(
+    () =>
+        (page.props.app as { name?: string; logo_url?: string | null } | undefined) ?? {},
+);
+const appName = computed(() => app.value.name ?? 'Ôhéfê Market');
+const logoUrl = computed(() => app.value.logo_url ?? null);
 </script>
 
 <template>
@@ -13,8 +18,16 @@ const appName = computed(() => (page.props.app as { name?: string } | undefined)
         <div class="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-20">
             <div class="grid gap-10 sm:grid-cols-2 md:grid-cols-[1.4fr_1fr_1fr_1fr] md:gap-12">
                 <div class="sm:col-span-2 md:col-span-1">
-                    <Link href="/" class="font-display text-2xl text-white transition hover:text-brass-light">
-                        {{ appName }}
+                    <Link href="/" class="inline-flex items-center transition hover:opacity-90">
+                        <img
+                            v-if="logoUrl"
+                            :src="logoUrl"
+                            :alt="appName"
+                            class="h-9 w-auto max-w-[11rem] object-contain"
+                        />
+                        <span v-else class="font-display text-2xl text-white hover:text-brass-light">
+                            {{ appName }}
+                        </span>
                     </Link>
                     <p class="mt-4 max-w-sm text-sm leading-relaxed text-white/60">
                         Produits ivoiriens authentiques, importés et livrés au Canada — boutique,

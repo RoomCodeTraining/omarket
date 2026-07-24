@@ -51,8 +51,8 @@ const form = useForm({
 });
 
 watch(createAccount, (value) => {
-    form.create_account = value || props.checkout_requires_account;
-    if (!value && !props.checkout_requires_account) {
+    form.create_account = !authUser.value && (value || props.checkout_requires_account);
+    if (!form.create_account) {
         form.password = '';
         form.password_confirmation = '';
         form.clearErrors('password', 'password_confirmation');
@@ -68,7 +68,13 @@ function removeItem(productId: number) {
 }
 
 function submitCheckout() {
-    form.create_account = createAccount.value || props.checkout_requires_account;
+    form.create_account = !authUser.value && (createAccount.value || props.checkout_requires_account);
+    if (authUser.value) {
+        form.guest_name = authUser.value.name;
+        form.guest_email = authUser.value.email;
+        form.password = '';
+        form.password_confirmation = '';
+    }
     form.post('/panier/commander', { preserveScroll: true });
 }
 </script>

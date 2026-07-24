@@ -8,18 +8,23 @@ beforeEach(function () {
     SiteSettings::forgetCache();
 });
 
-it('persists site settings and updates the low stock threshold', function () {
+it('persists branding settings for logo and primary color', function () {
     SiteSettings::putMany([
-        'store_name' => 'Ôhéfê Test',
-        'low_stock_threshold' => 3,
-        'partner_registration_enabled' => false,
+        'brand_logo' => 'branding/logo.png',
+        'primary_color' => '#C45C26',
     ]);
 
     SiteSettings::forgetCache();
 
-    expect(SiteSettings::storeName())->toBe('Ôhéfê Test')
-        ->and(SiteSettings::lowStockThreshold())->toBe(3)
-        ->and(SiteSettings::partnerRegistrationEnabled())->toBeFalse();
+    expect(SiteSettings::brandLogoPath())->toBe('branding/logo.png')
+        ->and(SiteSettings::brandLogoUrl())->toEndWith('storage/branding/logo.png')
+        ->and(SiteSettings::primaryColor())->toBe('#c45c26');
+});
+
+it('falls back to default primary color when invalid', function () {
+    SiteSettings::set('primary_color', 'not-a-color');
+
+    expect(SiteSettings::primaryColor())->toBe('#0f2e24');
 });
 
 it('blocks partner registration when disabled in settings', function () {

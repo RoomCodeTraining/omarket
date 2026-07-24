@@ -54,11 +54,12 @@ class HandleInertiaRequests extends Middleware
             'app' => [
                 'name' => SiteSettings::storeName(),
                 'tagline' => SiteSettings::storeTagline(),
-                'announcement' => SiteSettings::announcementBanner(),
                 'partner_registration_enabled' => SiteSettings::partnerRegistrationEnabled(),
                 'courses_enabled' => SiteSettings::coursesEnabled(),
                 'arrivals_enabled' => SiteSettings::arrivalsEnabled(),
                 'currency' => SiteSettings::currencyCode(),
+                'logo_url' => SiteSettings::brandLogoUrl(),
+                'primary_color' => SiteSettings::primaryColor(),
             ],
             'cart' => [
                 'count' => Cart::count(),

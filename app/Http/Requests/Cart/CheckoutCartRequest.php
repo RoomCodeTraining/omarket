@@ -34,13 +34,13 @@ class CheckoutCartRequest extends FormRequest
             'shipping_country' => ['nullable', 'string', 'size:2'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'create_account' => ['sometimes', 'boolean'],
-            'password' => [
-                'nullable',
-                $requiresAccount && $user === null ? 'required' : 'required_if:create_account,1',
-                'required_if:create_account,true',
-                'confirmed',
-                Password::defaults(),
-            ],
+            'password' => $user
+                ? ['nullable']
+                : [
+                    ($requiresAccount || $this->boolean('create_account')) ? 'required' : 'nullable',
+                    'confirmed',
+                    Password::defaults(),
+                ],
         ];
     }
 
@@ -114,8 +114,10 @@ class CheckoutCartRequest extends FormRequest
             'shipping_postal_code' => strtoupper((string) $validated['shipping_postal_code']),
             'shipping_country' => strtoupper((string) ($validated['shipping_country'] ?? 'CA')),
             'notes' => $validated['notes'] ?? null,
-            'create_account' => $this->boolean('create_account')
-                || (SiteSettings::checkoutRequiresAccount() && $this->user() === null),
+            'create_account' => $user === null && (
+                $this->boolean('create_account')
+                || SiteSettings::checkoutRequiresAccount()
+            ),
             'password' => isset($validated['password']) && is_string($validated['password'])
                 ? $validated['password']
                 : null,

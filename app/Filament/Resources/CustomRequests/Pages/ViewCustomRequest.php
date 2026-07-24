@@ -31,8 +31,8 @@ class ViewCustomRequest extends ViewRecord
                 ->requiresConfirmation()
                 ->modalHeading('Valider cette course ?')
                 ->modalDescription('Le client et l’équipe Ôhéfê seront notifiés par e-mail. Vous pourrez ensuite envoyer un devis et associer un cargo.')
-                ->action(function (ValidateCustomRequest $action) use ($record): void {
-                    $action->handle($record->fresh());
+                ->action(function (ValidateCustomRequest $validate) use ($record): void {
+                    $validate->handle($record->fresh());
 
                     Notification::make()
                         ->title('Course validée')
@@ -62,9 +62,9 @@ class ViewCustomRequest extends ViewRecord
                         ->searchable()
                         ->default($record->cargo_id),
                 ])
-                ->action(function (array $data, AssignCargoToCustomRequest $action) use ($record): void {
+                ->action(function (array $data, AssignCargoToCustomRequest $assignCargo) use ($record): void {
                     $cargo = Cargo::query()->findOrFail($data['cargo_id']);
-                    $action->handle($record->fresh(), $cargo);
+                    $assignCargo->handle($record->fresh(), $cargo);
 
                     Notification::make()
                         ->title('Cargo associé')

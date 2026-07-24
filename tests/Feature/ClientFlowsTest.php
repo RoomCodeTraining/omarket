@@ -7,7 +7,9 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Reservation;
 use App\Models\User;
+use App\Notifications\CustomRequestSubmittedForTeam;
 use Database\Seeders\CatalogSeeder;
+use Illuminate\Support\Facades\Notification;
 
 beforeEach(function () {
     $this->seed(CatalogSeeder::class);
@@ -56,29 +58,67 @@ it('reserves a cargo item and creates a linked cargo order', function () {
 });
 
 it('submits a custom request', function () {
+    Notification::fake();
+
+    $admin = User::factory()->admin()->create();
+
     $this->post(route('courses.store'), [
         'guest_name' => 'Kofi Mensah',
         'guest_email' => 'kofi@example.com',
-        'title' => 'Ignames fraîches',
-        'description' => 'Besoin de 5 kg d’ignames pour le week-end.',
-        'quantity' => 5,
-        'budget' => 40,
+        'items' => [
+            [
+                'label' => 'Ignames fraîches',
+                'quantity' => 5,
+                'budget' => 40,
+            ],
+        ],
         'has_supplier' => false,
     ])->assertRedirect();
 
     $request = CustomRequest::query()->where('title', 'Ignames fraîches')->first();
 
     expect($request)->not->toBeNull()
-        ->and($request->has_supplier)->toBeFalse();
+        ->and($request->has_supplier)->toBeFalse()
+        ->and($request->items)->toHaveCount(1)
+        ->and($request->items->first()->label)->toBe('Ignames fraîches')
+        ->and($request->items->first()->quantity)->toBe(5)
+        ->and($request->items->first()->budget_cents)->toBe(4000);
+
+    Notification::assertSentTo($admin, CustomRequestSubmittedForTeam::class);
+});
+
+it('submits a custom request with multiple products', function () {
+    $this->post(route('courses.store'), [
+        'guest_name' => 'Multi Produits',
+        'guest_email' => 'multi.courses@example.com',
+        'items' => [
+            ['label' => 'Attiéké', 'quantity' => 2, 'budget' => 15],
+            ['label' => 'Poisson fumé', 'quantity' => 3, 'budget' => 50],
+        ],
+        'description' => 'Pour un weekend familial.',
+        'has_supplier' => false,
+    ])->assertRedirect();
+
+    $request = CustomRequest::query()->where('guest_email', 'multi.courses@example.com')->first();
+
+    expect($request)->not->toBeNull()
+        ->and($request->title)->toBe('Attiéké (+1)')
+        ->and($request->quantity)->toBe(5)
+        ->and($request->budget_cents)->toBe(6500)
+        ->and($request->description)->toBe('Pour un weekend familial.')
+        ->and($request->items)->toHaveCount(2);
 });
 
 it('submits a custom request with a supplier', function () {
     $this->post(route('courses.store'), [
         'guest_name' => 'Awa Fournisseur',
         'guest_email' => 'awa.supplier@example.com',
-        'title' => 'Poisson fumé',
-        'description' => 'Capitaine fumé du bord de lagune.',
-        'quantity' => 3,
+        'items' => [
+            [
+                'label' => 'Poisson fumé',
+                'quantity' => 3,
+            ],
+        ],
         'has_supplier' => true,
         'supplier_name' => 'Marché d’Abobo',
         'supplier_contact' => '+225 07 00 00 00',
@@ -100,9 +140,12 @@ it('submits a custom request for an authenticated client without contact fields'
 
     $this->actingAs($client)
         ->post(route('courses.store'), [
-            'title' => 'Huile de palme',
-            'description' => 'Bidon de 5 L, qualité rouge.',
-            'quantity' => 2,
+            'items' => [
+                [
+                    'label' => 'Huile de palme',
+                    'quantity' => 2,
+                ],
+            ],
             'has_supplier' => false,
         ])
         ->assertRedirect();
@@ -113,7 +156,8 @@ it('submits a custom request for an authenticated client without contact fields'
         ->and($request->user_id)->toBe($client->id)
         ->and($request->guest_name)->toBe('Awa Connectée')
         ->and($request->guest_email)->toBe('awa.courses@example.com')
-        ->and($request->has_supplier)->toBeFalse();
+        ->and($request->has_supplier)->toBeFalse()
+        ->and($request->items)->toHaveCount(1);
 });
 
 it('checks out the cart as a guest', function () {

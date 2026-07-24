@@ -22,6 +22,7 @@ it('sends a draft quote to the client and marks the course as quoted', function 
         'custom_request_id' => $request->id,
         'status' => QuoteStatus::Draft,
         'amount_cents' => 5000,
+        'message' => 'Devis tout compris.',
     ]);
 
     $sent = app(SendQuote::class)->handle($quote);
@@ -30,6 +31,25 @@ it('sends a draft quote to the client and marks the course as quoted', function 
         ->and($request->fresh()->status)->toBe(CustomRequestStatus::Quoted);
 
     Notification::assertSentTo($client, QuoteSentToClient::class);
+});
+
+it('emails a guest address when the course has no linked user', function () {
+    Notification::fake();
+
+    $request = CustomRequest::factory()->validated()->create([
+        'user_id' => null,
+        'guest_name' => 'Invité Devis',
+        'guest_email' => 'invite.devis@example.com',
+    ]);
+    $quote = Quote::factory()->create([
+        'custom_request_id' => $request->id,
+        'status' => QuoteStatus::Draft,
+        'amount_cents' => 3200,
+    ]);
+
+    app(SendQuote::class)->handle($quote);
+
+    Notification::assertSentOnDemand(QuoteSentToClient::class);
 });
 
 it('refuses to send a quote before the course is validated', function () {

@@ -4,6 +4,12 @@ import { computed } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHero from '@/Components/Landing/PageHero.vue';
 
+type ProductLine = {
+    label: string;
+    quantity: number;
+    budget: number | null;
+};
+
 const props = defineProps<{
     defaults: {
         guest_name: string;
@@ -19,13 +25,15 @@ const authUser = computed(
         null,
 );
 
+function emptyLine(): ProductLine {
+    return { label: '', quantity: 1, budget: null };
+}
+
 const form = useForm({
     guest_name: props.defaults.guest_name || authUser.value?.name || '',
     guest_email: props.defaults.guest_email || authUser.value?.email || '',
-    title: '',
+    items: [emptyLine()] as ProductLine[],
     description: '',
-    quantity: 1,
-    budget: null as number | null,
     has_supplier: false,
     supplier_name: '',
     supplier_contact: '',
@@ -33,19 +41,33 @@ const form = useForm({
 
 const isLoggedIn = computed(() => props.is_authenticated || authUser.value !== null);
 
+function addLine() {
+    if (form.items.length >= 20) {
+        return;
+    }
+
+    form.items.push(emptyLine());
+}
+
+function removeLine(index: number) {
+    if (form.items.length <= 1) {
+        return;
+    }
+
+    form.items.splice(index, 1);
+}
+
+function itemError(index: number, field: string): string | undefined {
+    return form.errors[`items.${index}.${field}`];
+}
+
 function submit() {
     form.post('/courses', {
         preserveScroll: true,
-        onSuccess: () =>
-            form.reset(
-                'title',
-                'description',
-                'quantity',
-                'budget',
-                'has_supplier',
-                'supplier_name',
-                'supplier_contact',
-            ),
+        onSuccess: () => {
+            form.reset('description', 'has_supplier', 'supplier_name', 'supplier_contact');
+            form.items = [emptyLine()];
+        },
     });
 }
 </script>
@@ -63,7 +85,7 @@ function submit() {
         <PageHero
             eyebrow="Courses"
             title="On achète pour vous en Côte d’Ivoire"
-            description="Un produit introuvable dans la boutique ou les arrivages ? Décrivez-le, recevez un devis, validez."
+            description="Un ou plusieurs produits introuvables ? Indiquez libellé, quantité et budget, recevez un devis."
             webp="/images/landing/section-community.webp"
             jpg="/images/landing/section-community.jpg"
             alt="Clients heureux après leurs courses"
@@ -78,7 +100,7 @@ function submit() {
                     >
                         <h2 class="font-display text-2xl text-forest-900 sm:text-3xl">Nouvelle demande</h2>
                         <p class="mt-2 text-sm text-ink-muted">
-                            Remplissez le formulaire — nous vous répondons avec un devis.
+                            Ajoutez chaque produit avec son libellé, sa quantité et un budget indicatif.
                         </p>
 
                         <div
@@ -131,56 +153,101 @@ function submit() {
                             </p>
                         </div>
 
-                        <div class="mt-4">
-                            <label class="text-xs font-medium text-ink-muted">Produit recherché</label>
-                            <input
-                                v-model="form.title"
-                                type="text"
-                                required
-                                placeholder="Ex. Capitaine fumé"
-                                class="mt-1 h-11 w-full border border-forest-900/15 px-3"
-                            />
-                            <p v-if="form.errors.title" class="mt-1 text-xs text-red-600">
-                                {{ form.errors.title }}
-                            </p>
+                        <div class="mt-8 space-y-4">
+                            <div class="flex items-end justify-between gap-3">
+                                <div>
+                                    <h3 class="text-sm font-semibold text-forest-900">Produits</h3>
+                                    <p class="mt-0.5 text-xs text-ink-muted">1 à 20 produits par demande.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="text-sm font-semibold text-forest-800 underline disabled:opacity-40"
+                                    :disabled="form.items.length >= 20"
+                                    @click="addLine"
+                                >
+                                    + Ajouter un produit
+                                </button>
+                            </div>
+
+                            <p v-if="form.errors.items" class="text-xs text-red-600">{{ form.errors.items }}</p>
+
+                            <div
+                                v-for="(item, index) in form.items"
+                                :key="index"
+                                class="border border-forest-900/10 p-4"
+                            >
+                                <div class="flex items-center justify-between gap-3">
+                                    <p class="text-xs font-medium tracking-wide text-ink-muted uppercase">
+                                        Produit {{ index + 1 }}
+                                    </p>
+                                    <button
+                                        v-if="form.items.length > 1"
+                                        type="button"
+                                        class="text-xs font-medium text-red-700 underline"
+                                        @click="removeLine(index)"
+                                    >
+                                        Retirer
+                                    </button>
+                                </div>
+
+                                <div class="mt-3">
+                                    <label class="text-xs font-medium text-ink-muted">Libellé</label>
+                                    <input
+                                        v-model="item.label"
+                                        type="text"
+                                        required
+                                        placeholder="Ex. Capitaine fumé"
+                                        class="mt-1 h-11 w-full border border-forest-900/15 px-3"
+                                    />
+                                    <p v-if="itemError(index, 'label')" class="mt-1 text-xs text-red-600">
+                                        {{ itemError(index, 'label') }}
+                                    </p>
+                                </div>
+
+                                <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                                    <div>
+                                        <label class="text-xs font-medium text-ink-muted">Quantité</label>
+                                        <input
+                                            v-model.number="item.quantity"
+                                            type="number"
+                                            min="1"
+                                            max="100"
+                                            required
+                                            class="mt-1 h-11 w-full border border-forest-900/15 px-3"
+                                        />
+                                        <p v-if="itemError(index, 'quantity')" class="mt-1 text-xs text-red-600">
+                                            {{ itemError(index, 'quantity') }}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <label class="text-xs font-medium text-ink-muted">Budget max (CAD)</label>
+                                        <input
+                                            v-model.number="item.budget"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            class="mt-1 h-11 w-full border border-forest-900/15 px-3"
+                                            placeholder="Optionnel"
+                                        />
+                                        <p v-if="itemError(index, 'budget')" class="mt-1 text-xs text-red-600">
+                                            {{ itemError(index, 'budget') }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="mt-4">
-                            <label class="text-xs font-medium text-ink-muted">Détails</label>
+                            <label class="text-xs font-medium text-ink-muted">Notes (optionnel)</label>
                             <textarea
                                 v-model="form.description"
-                                required
-                                rows="4"
+                                rows="3"
                                 class="mt-1 w-full border border-forest-900/15 px-3 py-2.5"
-                                placeholder="Quantité souhaitée, marque, format, contraintes…"
+                                placeholder="Marque, format, contraintes globales…"
                             />
                             <p v-if="form.errors.description" class="mt-1 text-xs text-red-600">
                                 {{ form.errors.description }}
                             </p>
-                        </div>
-
-                        <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                            <div>
-                                <label class="text-xs font-medium text-ink-muted">Quantité</label>
-                                <input
-                                    v-model.number="form.quantity"
-                                    type="number"
-                                    min="1"
-                                    required
-                                    class="mt-1 h-11 w-full border border-forest-900/15 px-3"
-                                />
-                            </div>
-                            <div>
-                                <label class="text-xs font-medium text-ink-muted">Budget max (CAD)</label>
-                                <input
-                                    v-model.number="form.budget"
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    class="mt-1 h-11 w-full border border-forest-900/15 px-3"
-                                    placeholder="Optionnel"
-                                />
-                            </div>
                         </div>
 
                         <fieldset class="mt-6 space-y-3 border border-forest-900/10 p-4">
@@ -188,7 +255,7 @@ function submit() {
                                 Fournisseur
                             </legend>
                             <p class="text-sm text-ink-muted">
-                                Avez-vous déjà un fournisseur en Côte d’Ivoire pour ce produit ?
+                                Avez-vous déjà un fournisseur en Côte d’Ivoire pour ces produits ?
                             </p>
                             <div class="flex flex-col gap-2 sm:flex-row sm:gap-6">
                                 <label class="flex items-center gap-2 text-sm text-forest-900">
@@ -256,7 +323,7 @@ function submit() {
                             <li class="flex gap-4">
                                 <span class="font-display text-2xl text-brass">01</span>
                                 <p class="pt-1 text-ink-muted">
-                                    Vous décrivez le produit et précisez si vous avez un fournisseur.
+                                    Vous listez les produits (libellé, quantité, budget) et précisez le fournisseur.
                                 </p>
                             </li>
                             <li class="flex gap-4">

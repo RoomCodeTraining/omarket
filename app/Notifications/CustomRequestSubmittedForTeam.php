@@ -11,7 +11,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-final class CustomRequestValidatedForTeam extends Notification implements ShouldQueue
+final class CustomRequestSubmittedForTeam extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -28,13 +28,14 @@ final class CustomRequestValidatedForTeam extends Notification implements Should
         $appName = SiteSettings::storeName();
         $client = $request->guest_name ?: $request->user?->name ?: 'Client';
         $email = $request->guest_email ?: $request->user?->email ?: '—';
+        $productsCount = $request->items->count();
 
         $mail = (new MailMessage)
-            ->subject("Course validée — {$request->title}")
+            ->subject("Nouvelle course — {$request->title}")
             ->greeting('Équipe '.$appName.',')
-            ->line("La course « {$request->title} » est validée et prête pour devis / exécution.")
+            ->line("Une nouvelle demande de course a été créée sur {$appName}.")
             ->line("Client : {$client} ({$email})")
-            ->line("Quantité totale : {$request->quantity}")
+            ->line("Produits : {$productsCount} · Quantité totale : {$request->quantity}")
             ->line('Fournisseur : '.$request->supplierLabel());
 
         foreach ($request->items as $item) {
@@ -45,13 +46,16 @@ final class CustomRequestValidatedForTeam extends Notification implements Should
         }
 
         if (filled($request->description) && $request->items->isNotEmpty()) {
-            $mail->line('Notes : '.$request->description);
-        } elseif (filled($request->description)) {
+            $autoDescription = CustomRequest::aggregatesFromItems($request->items, null)['description'];
+            if (trim($request->description) !== trim($autoDescription)) {
+                $mail->line('Notes : '.$request->description);
+            }
+        } elseif (filled($request->description) && $request->items->isEmpty()) {
             $mail->line($request->description);
         }
 
         return $mail
-            ->action('Ouvrir dans l’admin', url('/admin/courses/'.$request->id))
+            ->action('Ouvrir dans l’admin', url('/admin/courses/'.$request->id.'/edit'))
             ->salutation("Notification {$appName}");
     }
 }

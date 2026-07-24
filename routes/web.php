@@ -42,6 +42,8 @@ Route::middleware('guest')->group(function () {
 
     Route::get('/connexion', [ClientAuthController::class, 'showLogin'])->name('client.login');
     Route::post('/connexion', [ClientAuthController::class, 'login'])->name('client.login.store');
+    Route::get('/inscription', [ClientAuthController::class, 'showRegister'])->name('client.register');
+    Route::post('/inscription', [ClientAuthController::class, 'register'])->name('client.register.store');
 
     Route::get('/partenaires/inscription', [PartnerAuthController::class, 'showRegister'])
         ->name('partner.register');

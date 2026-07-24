@@ -14,6 +14,15 @@ type AuthUser = {
     can_publish?: boolean;
 };
 
+type AppProps = {
+    name?: string;
+    logo_url?: string | null;
+    primary_color?: string;
+    partner_registration_enabled?: boolean;
+    courses_enabled?: boolean;
+    arrivals_enabled?: boolean;
+};
+
 const page = usePage();
 const scrolled = ref(false);
 const mobileOpen = ref(false);
@@ -30,28 +39,41 @@ const authUser = computed(
 );
 const isPartner = computed(() => authUser.value?.role === 'partner');
 
-const navLinks = computed(() => {
-    const app = page.props.app as
-        | {
-              partner_registration_enabled?: boolean;
-              courses_enabled?: boolean;
-              arrivals_enabled?: boolean;
-          }
-        | undefined;
+const app = computed(() => (page.props.app as AppProps | undefined) ?? {});
+const storeName = computed(() => app.value.name ?? 'Ôhéfê Market');
+const logoUrl = computed(() => app.value.logo_url ?? null);
 
+function applyPrimaryColor(hex: string): void {
+    const color = /^#[0-9A-Fa-f]{6}$/.test(hex) ? hex : '#0f2e24';
+    const root = document.documentElement;
+
+    root.style.setProperty('--color-forest-900', color);
+    root.style.setProperty('--color-forest-950', `color-mix(in srgb, ${color} 82%, black)`);
+    root.style.setProperty('--color-forest-800', `color-mix(in srgb, ${color} 88%, white)`);
+    root.style.setProperty('--color-forest-700', `color-mix(in srgb, ${color} 72%, white)`);
+    root.style.setProperty('--color-forest-600', `color-mix(in srgb, ${color} 58%, white)`);
+}
+
+watch(
+    () => app.value.primary_color ?? '#0f2e24',
+    (color) => applyPrimaryColor(color),
+    { immediate: true },
+);
+
+const navLinks = computed(() => {
     const links: Array<{ href: string; label: string }> = [
         { href: '/boutique', label: 'Boutique' },
     ];
 
-    if (app?.arrivals_enabled !== false) {
+    if (app.value.arrivals_enabled !== false) {
         links.push({ href: '/arrivages', label: 'Arrivages' });
     }
 
-    if (app?.courses_enabled !== false) {
+    if (app.value.courses_enabled !== false) {
         links.push({ href: '/courses', label: 'Courses' });
     }
 
-    if (!authUser.value && app?.partner_registration_enabled !== false) {
+    if (!authUser.value && app.value.partner_registration_enabled !== false) {
         links.push({ href: '/partenaires/inscription', label: 'Partenaires' });
     }
 
@@ -124,11 +146,17 @@ onUnmounted(() => {
             <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3.5 sm:gap-6 sm:px-5 md:px-8 md:py-4">
                 <Link
                     href="/"
-                    class="font-display min-w-0 truncate text-lg tracking-tight transition-colors sm:text-xl md:text-2xl"
+                    class="font-display flex min-w-0 items-center gap-2.5 truncate text-lg tracking-tight transition-colors sm:text-xl md:text-2xl"
                     :class="useDarkNav ? 'text-white' : 'text-forest-900'"
                     @click="closeMobile"
                 >
-                    Ôhéfê Market
+                    <img
+                        v-if="logoUrl"
+                        :src="logoUrl"
+                        :alt="storeName"
+                        class="h-8 w-auto max-w-[9rem] object-contain sm:h-9"
+                    />
+                    <span v-else>{{ storeName }}</span>
                 </Link>
 
                 <nav

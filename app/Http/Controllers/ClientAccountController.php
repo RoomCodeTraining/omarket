@@ -38,7 +38,7 @@ class ClientAccountController extends Controller
             ]);
 
         $customRequests = CustomRequest::query()
-            ->with(['quotes' => fn ($query) => $query->latest()])
+            ->with(['quotes' => fn ($query) => $query->latest(), 'items'])
             ->where('user_id', $user->id)
             ->latest()
             ->get()
@@ -53,6 +53,11 @@ class ClientAccountController extends Controller
                     'budget' => $request->budget_cents !== null
                         ? number_format($request->budget_cents / 100, 2, ',', ' ').' $'
                         : null,
+                    'items' => $request->items->map(fn ($item) => [
+                        'label' => $item->label,
+                        'quantity' => $item->quantity,
+                        'budget' => $item->budgetFormatted(),
+                    ])->values()->all(),
                     'status' => $request->status->value,
                     'status_label' => $request->status->label(),
                     'created_at' => $request->created_at?->format('d/m/Y'),

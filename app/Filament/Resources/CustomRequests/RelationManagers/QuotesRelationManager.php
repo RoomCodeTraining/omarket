@@ -10,7 +10,6 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -19,6 +18,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Validation\ValidationException;
 
 class QuotesRelationManager extends RelationManager
 {
@@ -34,8 +34,9 @@ class QuotesRelationManager extends RelationManager
     {
         return $schema->components([
             Section::make('Devis')
-                ->description('Montant et message envoyés au client.')
+                ->description('Créez un brouillon, puis utilisez « Envoyer au client » pour notifier par e-mail.')
                 ->icon('heroicon-o-document-text')
+                ->columnSpanFull()
                 ->columns(2)
                 ->schema([
                     TextInput::make('amount_cents')
@@ -45,15 +46,6 @@ class QuotesRelationManager extends RelationManager
                         ->minValue(0)
                         ->prefix('¢')
                         ->helperText('Ex. 7500 = 75,00 $'),
-                    Select::make('status')
-                        ->label('Statut')
-                        ->options(collect(QuoteStatus::cases())->mapWithKeys(
-                            fn (QuoteStatus $status) => [$status->value => $status->label()],
-                        ))
-                        ->required()
-                        ->default(QuoteStatus::Draft->value)
-                        ->native(false)
-                        ->helperText('Préférez « Envoyer au client » pour notifier par e-mail.'),
                     DateTimePicker::make('valid_until')
                         ->label('Valable jusqu’au')
                         ->native(false)
@@ -100,7 +92,7 @@ class QuotesRelationManager extends RelationManager
                     ->label('Nouveau devis')
                     ->modalHeading('Créer un devis')
                     ->mutateFormDataUsing(function (array $data): array {
-                        $data['status'] ??= QuoteStatus::Draft->value;
+                        $data['status'] = QuoteStatus::Draft->value;
 
                         return $data;
                     }),
@@ -113,19 +105,35 @@ class QuotesRelationManager extends RelationManager
                     ->visible(fn (Quote $record): bool => $record->status === QuoteStatus::Draft)
                     ->requiresConfirmation()
                     ->modalHeading('Envoyer ce devis ?')
-                    ->modalDescription('Le client recevra un e-mail. La course doit être validée au préalable.')
+                    ->modalDescription('Le client recevra un e-mail avec le montant du devis. La course doit être validée au préalable.')
                     ->action(function (Quote $record, SendQuote $sendQuote): void {
-                        $sendQuote->handle($record);
+                        try {
+                            $sendQuote->handle($record);
+                        } catch (ValidationException $exception) {
+                            $message = collect($exception->errors())->flatten()->first();
+
+                            Notification::make()
+                                ->title(is_string($message) && $message !== '' ? $message : 'Envoi impossible')
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
 
                         Notification::make()
-                            ->title('Devis envoyé au client')
+                            ->title('Devis envoyé')
+                            ->body('Le client a été notifié par e-mail.')
                             ->success()
                             ->send();
                     }),
-                EditAction::make()->label('Modifier'),
-                DeleteAction::make()->label('Supprimer'),
+                EditAction::make()
+                    ->label('Modifier')
+                    ->visible(fn (Quote $record): bool => $record->status === QuoteStatus::Draft),
+                DeleteAction::make()
+                    ->label('Supprimer')
+                    ->visible(fn (Quote $record): bool => $record->status === QuoteStatus::Draft),
             ])
             ->emptyStateHeading('Aucun devis')
-            ->emptyStateDescription('Créez un devis puis envoyez-le au client.');
+            ->emptyStateDescription('Créez un devis brouillon, puis envoyez-le au client pour le notifier.');
     }
 }

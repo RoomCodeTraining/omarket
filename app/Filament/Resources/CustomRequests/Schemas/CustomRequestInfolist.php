@@ -4,6 +4,7 @@ namespace App\Filament\Resources\CustomRequests\Schemas;
 
 use App\Enums\CustomRequestStatus;
 use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -15,16 +16,17 @@ class CustomRequestInfolist
         return $schema->components([
             Section::make('Course')
                 ->icon('heroicon-o-chat-bubble-left-right')
+                ->columnSpanFull()
                 ->columns(2)
                 ->schema([
-                    TextEntry::make('title')->label('Titre')->columnSpanFull(),
+                    TextEntry::make('title')->label('Titre résumé')->columnSpanFull(),
                     TextEntry::make('status')
                         ->label('Statut')
                         ->badge()
                         ->formatStateUsing(fn (CustomRequestStatus $state): string => $state->label()),
-                    TextEntry::make('quantity')->label('Quantité'),
+                    TextEntry::make('quantity')->label('Quantité totale'),
                     TextEntry::make('budget_cents')
-                        ->label('Budget')
+                        ->label('Budget total')
                         ->formatStateUsing(fn (?int $state): string => $state === null
                             ? '—'
                             : number_format($state / 100, 2, ',', ' ').' $'),
@@ -40,7 +42,7 @@ class CustomRequestInfolist
                             ?: '—')
                         ->copyable(),
                     TextEntry::make('description')
-                        ->label('Description')
+                        ->label('Notes')
                         ->columnSpanFull(),
                     TextEntry::make('created_at')
                         ->label('Reçue le')
@@ -49,6 +51,23 @@ class CustomRequestInfolist
                         ->label('Validée le')
                         ->dateTime('d/m/Y H:i')
                         ->placeholder('Pas encore validée'),
+                ]),
+            Section::make('Produits')
+                ->icon('heroicon-o-shopping-bag')
+                ->schema([
+                    RepeatableEntry::make('items')
+                        ->label('')
+                        ->schema([
+                            TextEntry::make('label')->label('Libellé'),
+                            TextEntry::make('quantity')->label('Quantité'),
+                            TextEntry::make('budget_cents')
+                                ->label('Budget')
+                                ->formatStateUsing(fn (?int $state): string => $state === null
+                                    ? '—'
+                                    : number_format($state / 100, 2, ',', ' ').' $'),
+                        ])
+                        ->columns(3)
+                        ->columnSpanFull(),
                 ]),
             Section::make('Fournisseur')
                 ->icon('heroicon-o-building-storefront')

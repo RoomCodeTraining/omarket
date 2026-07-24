@@ -37,8 +37,9 @@ final class SiteSettings
             'warehouse_phone' => '',
             'warehouse_notes' => '',
             'partner_deposit_reminder_days' => 3,
-            'announcement_banner' => '',
             'default_product_unit' => 'unité',
+            'brand_logo' => '',
+            'primary_color' => '#0f2e24',
         ];
     }
 
@@ -156,11 +157,6 @@ final class SiteSettings
         return (bool) self::get('arrivals_enabled');
     }
 
-    public static function announcementBanner(): string
-    {
-        return (string) self::get('announcement_banner');
-    }
-
     public static function defaultProductUnit(): string
     {
         return (string) self::get('default_product_unit');
@@ -222,6 +218,33 @@ final class SiteSettings
         ]);
 
         return implode("\n", $lines);
+    }
+
+    public static function brandLogoPath(): string
+    {
+        return (string) self::get('brand_logo');
+    }
+
+    public static function brandLogoUrl(): ?string
+    {
+        $path = self::brandLogoPath();
+
+        if ($path === '') {
+            return null;
+        }
+
+        return url('storage/'.$path);
+    }
+
+    public static function primaryColor(): string
+    {
+        $color = (string) self::get('primary_color');
+
+        if (preg_match('/^#[A-Fa-f0-9]{6}$/', $color) !== 1) {
+            return '#0f2e24';
+        }
+
+        return strtolower($color);
     }
 
     private static function encode(mixed $value): string

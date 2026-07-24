@@ -30,8 +30,8 @@ class EditCustomRequest extends EditRecord
                 ->color('success')
                 ->visible(fn (): bool => ! $record->isValidated())
                 ->requiresConfirmation()
-                ->action(function (ValidateCustomRequest $action) use ($record): void {
-                    $action->handle($record->fresh());
+                ->action(function (ValidateCustomRequest $validate) use ($record): void {
+                    $validate->handle($record->fresh());
 
                     Notification::make()
                         ->title('Course validée')
@@ -59,9 +59,9 @@ class EditCustomRequest extends EditRecord
                         ->searchable()
                         ->default($record->cargo_id),
                 ])
-                ->action(function (array $data, AssignCargoToCustomRequest $action) use ($record): void {
+                ->action(function (array $data, AssignCargoToCustomRequest $assignCargo) use ($record): void {
                     $cargo = Cargo::query()->findOrFail($data['cargo_id']);
-                    $action->handle($record->fresh(), $cargo);
+                    $assignCargo->handle($record->fresh(), $cargo);
 
                     Notification::make()
                         ->title('Cargo associé — client notifié')
@@ -73,5 +73,23 @@ class EditCustomRequest extends EditRecord
             ViewAction::make(),
             DeleteAction::make(),
         ];
+    }
+
+    protected function afterSave(): void
+    {
+        /** @var CustomRequest $record */
+        $record = $this->getRecord();
+        $record->refreshAggregatesFromItems();
+        $this->refreshFormData(['title', 'quantity', 'budget_cents']);
+    }
+
+    public function hasCombinedRelationManagerTabsWithContent(): bool
+    {
+        return true;
+    }
+
+    public function getContentTabLabel(): ?string
+    {
+        return 'Demande';
     }
 }

@@ -27,9 +27,11 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->brandName(fn (): string => SiteSettings::storeName())
+            ->brandLogo(fn (): ?string => SiteSettings::brandLogoUrl())
+            ->brandLogoHeight('2rem')
             ->login()
             ->colors([
-                'primary' => Color::hex('#C45C26'),
+                'primary' => Color::hex(SiteSettings::primaryColor()),
             ])
             ->navigationGroups([
                 'Boutique Ôhéfê',

@@ -3,6 +3,9 @@
 namespace App\Filament\Resources\CustomRequests\Tables;
 
 use App\Enums\CustomRequestStatus;
+use App\Filament\Resources\CustomRequests\CustomRequestResource;
+use App\Filament\Resources\CustomRequests\RelationManagers\QuotesRelationManager;
+use App\Models\CustomRequest;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
@@ -41,6 +44,10 @@ class CustomRequestsTable
                         ?: $record->user?->email
                         ?: '—')
                     ->toggleable(),
+                TextColumn::make('items_count')
+                    ->label('Produits')
+                    ->counts('items')
+                    ->alignCenter(),
                 TextColumn::make('quantity')
                     ->label('Qté')
                     ->alignCenter(),
@@ -98,7 +105,16 @@ class CustomRequestsTable
             ])
             ->recordActions([
                 ViewAction::make()->label('Voir'),
-                EditAction::make()->label('Traiter'),
+                EditAction::make()
+                    ->label('Traiter')
+                    ->url(fn (CustomRequest $record): string => CustomRequestResource::getUrl('edit', [
+                        'record' => $record,
+                        'relation' => (string) array_search(
+                            QuotesRelationManager::class,
+                            array_values(CustomRequestResource::getRelations()),
+                            true,
+                        ),
+                    ])),
             ]);
     }
 }

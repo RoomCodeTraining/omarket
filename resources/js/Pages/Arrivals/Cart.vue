@@ -52,8 +52,8 @@ const form = useForm({
 });
 
 watch(createAccount, (value) => {
-    form.create_account = value || props.checkout_requires_account;
-    if (!value && !props.checkout_requires_account) {
+    form.create_account = !authUser.value && (value || props.checkout_requires_account);
+    if (!form.create_account) {
         form.password = '';
         form.password_confirmation = '';
         form.clearErrors('password', 'password_confirmation');
@@ -73,7 +73,13 @@ function clearCart() {
 }
 
 function submitCheckout() {
-    form.create_account = createAccount.value || props.checkout_requires_account;
+    form.create_account = !authUser.value && (createAccount.value || props.checkout_requires_account);
+    if (authUser.value) {
+        form.guest_name = authUser.value.name;
+        form.guest_email = authUser.value.email;
+        form.password = '';
+        form.password_confirmation = '';
+    }
     form.post('/panier-arrivage/commander', { preserveScroll: true });
 }
 </script>
@@ -267,6 +273,13 @@ function submitCheckout() {
                             <p v-if="form.errors.cart" class="text-xs text-red-600">{{ form.errors.cart }}</p>
                             <p v-if="form.errors.cargo_item_id" class="text-xs text-red-600">
                                 {{ form.errors.cargo_item_id }}
+                            </p>
+                            <p v-if="form.errors.password" class="text-xs text-red-600">{{ form.errors.password }}</p>
+                            <p v-if="form.errors.create_account" class="text-xs text-red-600">
+                                {{ form.errors.create_account }}
+                            </p>
+                            <p v-if="form.errors.guest_email" class="text-xs text-red-600">
+                                {{ form.errors.guest_email }}
                             </p>
 
                             <button
