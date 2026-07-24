@@ -166,9 +166,9 @@ defineExpose({ current, next, prev });
         </div>
 
         <div
-            class="absolute inset-0 bg-gradient-to-t from-forest-950 via-forest-950/50 to-forest-950/30"
+            class="absolute inset-0 bg-gradient-to-t from-forest-950/90 via-forest-950/35 to-forest-950/20"
         />
-        <div class="absolute inset-0 bg-forest-950/25" />
+        <div class="absolute inset-0 bg-forest-950/15" />
 
         <button
             type="button"

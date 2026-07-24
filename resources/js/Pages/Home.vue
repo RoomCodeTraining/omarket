@@ -130,11 +130,13 @@ function addToCart(product: FeaturedProduct) {
         </Head>
 
         <!-- Hero -->
-        <section class="relative isolate min-h-[64svh] overflow-hidden bg-forest-950 sm:min-h-[68svh] md:min-h-[68svh]">
+        <section
+            class="relative isolate min-h-[88svh] overflow-hidden bg-forest-950 sm:min-h-[92svh] md:min-h-[92svh]"
+        >
             <HeroSlider v-model="activeSlide" :slides="slides" />
 
             <div
-                class="relative z-20 mx-auto flex min-h-[64svh] max-w-3xl flex-col items-center justify-center px-4 pb-12 pt-[calc(var(--header-offset)+0.5rem)] text-center sm:min-h-[68svh] sm:px-5 sm:pb-20 sm:pt-[calc(var(--header-offset)+1rem)] md:px-8 md:pb-24"
+                class="relative z-20 mx-auto flex min-h-[88svh] max-w-3xl flex-col items-center justify-center px-4 pb-12 pt-[calc(var(--header-offset)+0.5rem)] text-center sm:min-h-[92svh] sm:px-5 sm:pb-20 sm:pt-[calc(var(--header-offset)+1rem)] md:px-8 md:pb-24"
             >
                 <p
                     class="animate-fade-up hidden text-sm font-medium tracking-[0.28em] text-brass-light uppercase sm:block"
