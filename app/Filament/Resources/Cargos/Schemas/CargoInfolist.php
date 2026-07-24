@@ -15,6 +15,7 @@ class CargoInfolist
             Section::make('Arrivage')
                 ->icon('heroicon-o-truck')
                 ->columns(2)
+                ->columnSpanFull()
                 ->schema([
                     TextEntry::make('code')->label('Code'),
                     TextEntry::make('name')->label('Nom'),

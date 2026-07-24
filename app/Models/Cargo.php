@@ -55,6 +55,27 @@ class Cargo extends Model
         return $query->where('status', CargoStatus::Open);
     }
 
+    /**
+     * Partenaires : produits uniquement tant que le cargo est en mer.
+     *
+     * @param  Builder<Cargo>  $query
+     * @return Builder<Cargo>
+     */
+    public function scopeAcceptsPartnerProducts(Builder $query): Builder
+    {
+        return $query->where('status', CargoStatus::InTransit);
+    }
+
+    public function acceptsPartnerProducts(): bool
+    {
+        return $this->status === CargoStatus::InTransit;
+    }
+
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
     public function routeLabel(): string
     {
         return "{$this->origin} → {$this->destination}";

@@ -6,7 +6,9 @@ use App\Enums\CustomRequestStatus;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 
 class CustomRequestForm
@@ -62,10 +64,40 @@ class CustomRequestForm
                         ->prefix('¢')
                         ->helperText('Ex. 8000 = 80,00 $ — laissez vide si non précisé.'),
                 ]),
-            Section::make('Suivi')
-                ->description('Statut traité par l’équipe Ôhéfê.')
-                ->icon('heroicon-o-clipboard-document-check')
+            Section::make('Fournisseur')
+                ->description('Indiqué par le client à la création.')
+                ->icon('heroicon-o-building-storefront')
+                ->columns(2)
                 ->schema([
+                    Toggle::make('has_supplier')
+                        ->label('Le client a un fournisseur')
+                        ->live()
+                        ->inline(false),
+                    TextInput::make('supplier_name')
+                        ->label('Nom du fournisseur')
+                        ->maxLength(160)
+                        ->visible(fn (Get $get): bool => (bool) $get('has_supplier')),
+                    TextInput::make('supplier_contact')
+                        ->label('Contact / détails fournisseur')
+                        ->maxLength(255)
+                        ->columnSpanFull()
+                        ->visible(fn (Get $get): bool => (bool) $get('has_supplier')),
+                ]),
+            Section::make('Cargo & suivi')
+                ->description('Associez le cargo via l’action dédiée pour notifier le client.')
+                ->icon('heroicon-o-truck')
+                ->columns(2)
+                ->schema([
+                    Select::make('cargo_id')
+                        ->label('Cargo')
+                        ->relationship('cargo', 'code')
+                        ->getOptionLabelFromRecordUsing(
+                            fn ($record): string => "{$record->code} — {$record->name}",
+                        )
+                        ->searchable()
+                        ->preload()
+                        ->nullable()
+                        ->helperText('Préférez l’action « Associer un cargo » pour envoyer la notification client.'),
                     Select::make('status')
                         ->label('Statut')
                         ->options(collect(CustomRequestStatus::cases())->mapWithKeys(
@@ -73,7 +105,7 @@ class CustomRequestForm
                         ))
                         ->required()
                         ->native(false)
-                        ->helperText('Passez en « Devis envoyé » automatiquement via l’action Envoyer sur un devis.'),
+                        ->helperText('Utilisez « Valider la course » puis « Envoyer » sur un devis.'),
                 ]),
         ]);
     }

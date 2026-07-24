@@ -30,13 +30,25 @@ class ProductFactory extends Factory
             'status' => ProductStatus::Published,
             'image_path' => null,
             'is_featured' => false,
+            'listed_in_shop' => true,
             'user_id' => null,
+            'cargo_id' => null,
         ];
     }
 
     public function featured(): static
     {
-        return $this->state(fn () => ['is_featured' => true]);
+        return $this->state(fn () => ['is_featured' => true, 'listed_in_shop' => true]);
+    }
+
+    public function listedInShop(): static
+    {
+        return $this->state(fn () => ['listed_in_shop' => true]);
+    }
+
+    public function hiddenFromShop(): static
+    {
+        return $this->state(fn () => ['listed_in_shop' => false]);
     }
 
     public function draft(): static

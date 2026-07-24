@@ -49,6 +49,14 @@ class CustomRequestsTable
                     ->formatStateUsing(fn (?int $state): string => $state === null
                         ? '—'
                         : number_format($state / 100, 2, ',', ' ').' $'),
+                TextColumn::make('has_supplier')
+                    ->label('Fournisseur')
+                    ->formatStateUsing(fn (bool $state): string => $state ? 'Oui' : 'Non')
+                    ->toggleable(),
+                TextColumn::make('cargo.code')
+                    ->label('Cargo')
+                    ->placeholder('—')
+                    ->toggleable(),
                 TextColumn::make('status')
                     ->label('Statut')
                     ->badge()
@@ -60,6 +68,11 @@ class CustomRequestsTable
                         CustomRequestStatus::Rejected, CustomRequestStatus::Cancelled => 'danger',
                     })
                     ->formatStateUsing(fn (CustomRequestStatus $state): string => $state->label()),
+                TextColumn::make('validated_at')
+                    ->label('Validée')
+                    ->dateTime('d/m/Y')
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('quotes_count')
                     ->label('Devis')
                     ->counts('quotes')
@@ -76,6 +89,12 @@ class CustomRequestsTable
                     ->options(collect(CustomRequestStatus::cases())->mapWithKeys(
                         fn (CustomRequestStatus $status) => [$status->value => $status->label()],
                     )),
+                SelectFilter::make('has_supplier')
+                    ->label('Fournisseur')
+                    ->options([
+                        '1' => 'Avec fournisseur',
+                        '0' => 'Sans fournisseur',
+                    ]),
             ])
             ->recordActions([
                 ViewAction::make()->label('Voir'),

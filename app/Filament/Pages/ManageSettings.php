@@ -121,6 +121,55 @@ class ManageSettings extends Page
                         ->label('Module arrivages / cargos')
                         ->helperText('Cargos et réservations gérés par Ôhéfê.')
                         ->inline(false),
+                    Toggle::make('checkout_requires_account')
+                        ->label('Compte requis pour commander')
+                        ->helperText('Si activé, le client doit être connecté ou créer un compte pour valider une commande boutique.')
+                        ->inline(false),
+                ]),
+            Section::make('Entrepôt — dépôt partenaires')
+                ->description('Adresse communiquée aux partenaires pour déposer le stock avant l’arrivée du cargo.')
+                ->icon('heroicon-o-map-pin')
+                ->columns(2)
+                ->schema([
+                    TextInput::make('warehouse_name')
+                        ->label('Nom du site')
+                        ->maxLength(160),
+                    TextInput::make('warehouse_phone')
+                        ->label('Téléphone entrepôt')
+                        ->tel()
+                        ->maxLength(40),
+                    TextInput::make('warehouse_line1')
+                        ->label('Adresse ligne 1')
+                        ->maxLength(160)
+                        ->columnSpanFull(),
+                    TextInput::make('warehouse_line2')
+                        ->label('Adresse ligne 2')
+                        ->maxLength(160)
+                        ->columnSpanFull(),
+                    TextInput::make('warehouse_city')
+                        ->label('Ville')
+                        ->maxLength(100),
+                    TextInput::make('warehouse_province')
+                        ->label('Province')
+                        ->maxLength(80),
+                    TextInput::make('warehouse_postal_code')
+                        ->label('Code postal')
+                        ->maxLength(20),
+                    TextInput::make('warehouse_country')
+                        ->label('Pays')
+                        ->maxLength(2)
+                        ->helperText('Code ISO (CA).'),
+                    TextInput::make('partner_deposit_reminder_days')
+                        ->label('Rappel dépôt (jours avant ETA)')
+                        ->numeric()
+                        ->required()
+                        ->minValue(1)
+                        ->maxValue(30)
+                        ->helperText('Notification automatique aux partenaires ayant des commandes.'),
+                    Textarea::make('warehouse_notes')
+                        ->label('Consignes de dépôt')
+                        ->rows(3)
+                        ->columnSpanFull(),
                 ]),
             Section::make('Partenaires')
                 ->description('Réglages du canal partenaires — distinct de la boutique catalogue.')
@@ -167,6 +216,17 @@ class ManageSettings extends Page
             'partner_registration_enabled' => (bool) ($data['partner_registration_enabled'] ?? false),
             'courses_enabled' => (bool) ($data['courses_enabled'] ?? false),
             'arrivals_enabled' => (bool) ($data['arrivals_enabled'] ?? false),
+            'checkout_requires_account' => (bool) ($data['checkout_requires_account'] ?? false),
+            'warehouse_name' => $data['warehouse_name'] ?? '',
+            'warehouse_line1' => $data['warehouse_line1'] ?? '',
+            'warehouse_line2' => $data['warehouse_line2'] ?? '',
+            'warehouse_city' => $data['warehouse_city'] ?? '',
+            'warehouse_province' => $data['warehouse_province'] ?? '',
+            'warehouse_postal_code' => $data['warehouse_postal_code'] ?? '',
+            'warehouse_country' => strtoupper((string) ($data['warehouse_country'] ?? 'CA')),
+            'warehouse_phone' => $data['warehouse_phone'] ?? '',
+            'warehouse_notes' => $data['warehouse_notes'] ?? '',
+            'partner_deposit_reminder_days' => (int) ($data['partner_deposit_reminder_days'] ?? 3),
             'announcement_banner' => $data['announcement_banner'] ?? '',
             'default_product_unit' => $data['default_product_unit'],
         ]);

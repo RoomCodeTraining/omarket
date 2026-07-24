@@ -26,6 +26,17 @@ final class SiteSettings
             'partner_registration_enabled' => true,
             'courses_enabled' => true,
             'arrivals_enabled' => true,
+            'checkout_requires_account' => false,
+            'warehouse_name' => 'Entrepôt Ôhéfê Market',
+            'warehouse_line1' => '',
+            'warehouse_line2' => '',
+            'warehouse_city' => '',
+            'warehouse_province' => 'Québec',
+            'warehouse_postal_code' => '',
+            'warehouse_country' => 'CA',
+            'warehouse_phone' => '',
+            'warehouse_notes' => '',
+            'partner_deposit_reminder_days' => 3,
             'announcement_banner' => '',
             'default_product_unit' => 'unité',
         ];
@@ -153,6 +164,64 @@ final class SiteSettings
     public static function defaultProductUnit(): string
     {
         return (string) self::get('default_product_unit');
+    }
+
+    public static function checkoutRequiresAccount(): bool
+    {
+        return (bool) self::get('checkout_requires_account');
+    }
+
+    public static function partnerDepositReminderDays(): int
+    {
+        return max(1, (int) self::get('partner_deposit_reminder_days'));
+    }
+
+    /**
+     * @return array{
+     *     name: string,
+     *     line1: string,
+     *     line2: string,
+     *     city: string,
+     *     province: string,
+     *     postal_code: string,
+     *     country: string,
+     *     phone: string,
+     *     notes: string
+     * }
+     */
+    public static function warehouse(): array
+    {
+        return [
+            'name' => (string) self::get('warehouse_name'),
+            'line1' => (string) self::get('warehouse_line1'),
+            'line2' => (string) self::get('warehouse_line2'),
+            'city' => (string) self::get('warehouse_city'),
+            'province' => (string) self::get('warehouse_province'),
+            'postal_code' => (string) self::get('warehouse_postal_code'),
+            'country' => (string) self::get('warehouse_country'),
+            'phone' => (string) self::get('warehouse_phone'),
+            'notes' => (string) self::get('warehouse_notes'),
+        ];
+    }
+
+    public static function warehouseAddressFormatted(): string
+    {
+        $warehouse = self::warehouse();
+        $lines = array_filter([
+            $warehouse['name'],
+            $warehouse['line1'],
+            $warehouse['line2'],
+            trim(implode(' ', array_filter([
+                $warehouse['city'],
+                $warehouse['province'],
+                $warehouse['postal_code'],
+            ]))),
+            $warehouse['country'],
+            $warehouse['phone'] !== '' ? 'Tél. '.$warehouse['phone'] : null,
+            $warehouse['notes'] !== '' ? $warehouse['notes'] : null,
+        ]);
+
+        return implode("\n", $lines);
     }
 
     private static function encode(mixed $value): string

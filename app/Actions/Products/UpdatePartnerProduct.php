@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace App\Actions\Products;
 
 use App\Enums\ProductStatus;
+use App\Models\CargoItem;
 use App\Models\Product;
 use App\Models\User;
 use App\Support\ProductImageStorage;
+use App\Support\UniqueSlug;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 final class UpdatePartnerProduct
@@ -28,22 +29,6 @@ final class UpdatePartnerProduct
         }
 
         return DB::transaction(function () use ($product, $data) {
-            $slugBase = Str::slug($data['name']);
-            $slug = $slugBase;
-            $suffix = 1;
-
-            while (
-                Product::query()
-                    ->where('slug', $slug)
-                    ->where('id', '!=', $product->id)
-                    ->exists()
-            ) {
-                $slug = $slugBase.'-'.$suffix;
-                $suffix++;
-            }
-
-            $imagePath = $this->resolveImagePath($product, $data);
-
             $status = $product->status;
 
             // Editing a product awaiting review sends it back to draft.
@@ -54,14 +39,31 @@ final class UpdatePartnerProduct
             $product->forceFill([
                 'category_id' => $data['category_id'],
                 'name' => $data['name'],
-                'slug' => $slug,
+                'slug' => UniqueSlug::for(Product::class, $data['name'], $product->id),
                 'description' => $data['description'] ?? null,
                 'price_cents' => $data['price_cents'],
                 'stock_quantity' => $data['stock_quantity'],
                 'unit' => $data['unit'],
-                'image_path' => $imagePath,
+                'image_path' => $this->resolveImagePath($product, $data),
                 'status' => $status,
+                'listed_in_shop' => false,
             ])->save();
+
+            if ($product->cargo_id !== null) {
+                $item = CargoItem::query()->firstOrNew([
+                    'cargo_id' => $product->cargo_id,
+                    'product_id' => $product->id,
+                ]);
+
+                $reserved = (int) ($item->quantity_reserved ?? 0);
+                $available = max($reserved, (int) $data['stock_quantity']);
+
+                $item->fill([
+                    'quantity_available' => $available,
+                    'quantity_reserved' => $reserved,
+                    'unit_price_cents' => $data['price_cents'],
+                ])->save();
+            }
 
             return $product->refresh();
         });

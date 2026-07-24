@@ -5,18 +5,34 @@ import ProductImage from '@/Components/Shop/ProductImage.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 
 type Category = { id: number; name: string };
+type AvailableCargo = {
+    id: number;
+    label: string;
+    eta: string | null;
+    status_label: string;
+};
 type PartnerProduct = {
     id: number;
     category_id: number;
+    cargo_id: number | null;
     name: string;
     description: string | null;
     category: string | null;
+    cargo_code: string | null;
+    cargo_name: string | null;
+    cargo_eta: string | null;
     price: string;
     price_amount: number;
     stock_quantity: number;
     unit: string;
     status: string;
     status_label: string;
+    warehouse_deposited: boolean;
+    warehouse_deposited_at: string | null;
+    warehouse_deposited_quantity: number | null;
+    ordered_quantity: number;
+    deposit_deadline: string | null;
+    needs_deposit: boolean;
     image_url: string;
 };
 type PartnerOrder = {
@@ -46,6 +62,19 @@ const props = defineProps<{
     products: PartnerProduct[];
     orders: PartnerOrder[];
     categories: Category[];
+    available_cargos: AvailableCargo[];
+    can_create_product: boolean;
+    warehouse: {
+        name: string;
+        line1: string;
+        line2: string;
+        city: string;
+        province: string;
+        postal_code: string;
+        country: string;
+        phone: string;
+        notes: string;
+    };
     defaults: {
         unit: string;
     };
@@ -73,6 +102,7 @@ const imageWarning = ref<string | null>(null);
 
 const form = useForm({
     category_id: props.categories[0]?.id ?? 0,
+    cargo_id: props.available_cargos[0]?.id ?? 0,
     name: '',
     description: '',
     price: null as number | null,
@@ -122,6 +152,7 @@ async function uploadImageFile(file: File): Promise<boolean> {
 function resetFormFields() {
     form.reset('name', 'description', 'price', 'stock_quantity');
     form.category_id = props.categories[0]?.id ?? 0;
+    form.cargo_id = props.available_cargos[0]?.id ?? 0;
     form.unit = props.defaults.unit || 'unité';
     form.clearErrors();
 }
@@ -141,6 +172,10 @@ function clearImage() {
 }
 
 function openCreateModal() {
+    if (!props.can_create_product) {
+        return;
+    }
+
     editingProduct.value = null;
     resetFormFields();
     clearImage();
@@ -152,6 +187,7 @@ function openCreateModal() {
 function openEditModal(product: PartnerProduct) {
     editingProduct.value = product;
     form.category_id = product.category_id;
+    form.cargo_id = product.cargo_id ?? props.available_cargos[0]?.id ?? 0;
     form.name = product.name;
     form.description = product.description ?? '';
     form.price = product.price_amount;
@@ -263,7 +299,7 @@ function submitForReview(productId: number) {
 }
 
 function unpublish(productId: number) {
-    if (!confirm('Retirer ce produit de la boutique ?')) {
+    if (!confirm('Retirer ce produit de l’arrivage ?')) {
         return;
     }
 
@@ -320,6 +356,7 @@ onUnmounted(() => {
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <button
+                            v-if="can_create_product"
                             type="button"
                             class="inline-flex min-h-11 items-center justify-center bg-forest-900 px-4 text-sm font-semibold text-white"
                             @click="openCreateModal"
@@ -335,6 +372,14 @@ onUnmounted(() => {
                         </button>
                     </div>
                 </header>
+
+                <p
+                    v-if="!can_create_product"
+                    class="border border-amber-700/20 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+                >
+                    Aucun cargo en mer pour le moment. Vous pourrez ajouter des produits uniquement
+                    lorsqu’un cargo sera en transit — ils seront livrés avec cet arrivage (pas en boutique).
+                </p>
 
                 <p
                     v-if="flashSuccess"
@@ -403,8 +448,40 @@ onUnmounted(() => {
                                         {{ product.price }} / {{ product.unit }} · stock
                                         {{ product.stock_quantity }}
                                     </p>
+                                    <p v-if="product.cargo_code" class="mt-1 text-xs text-ink-muted">
+                                        Cargo {{ product.cargo_code }}
+                                        <span v-if="product.cargo_eta"> · ETA {{ product.cargo_eta }}</span>
+                                    </p>
                                     <p class="mt-2 text-xs font-medium" :class="statusTone(product.status)">
                                         {{ product.status_label }}
+                                    </p>
+                                    <p
+                                        v-if="product.warehouse_deposited || product.needs_deposit"
+                                        class="mt-1 text-xs font-medium"
+                                        :class="
+                                            product.warehouse_deposited
+                                                ? 'text-emerald-700'
+                                                : 'text-amber-700'
+                                        "
+                                    >
+                                        <template v-if="product.warehouse_deposited">
+                                            Déposé
+                                            <span v-if="product.warehouse_deposited_quantity != null">
+                                                · {{ product.warehouse_deposited_quantity }}
+                                                {{ product.unit }}
+                                            </span>
+                                            <span v-if="product.warehouse_deposited_at">
+                                                · {{ product.warehouse_deposited_at }}
+                                            </span>
+                                        </template>
+                                        <template v-else>
+                                            Dépôt entrepôt requis ·
+                                            {{ product.ordered_quantity }} {{ product.unit }}
+                                            commandé{{ product.ordered_quantity > 1 ? 's' : '' }}
+                                            <span v-if="product.deposit_deadline">
+                                                · délai {{ product.deposit_deadline }}
+                                            </span>
+                                        </template>
                                     </p>
                                 </div>
                                 <div class="mt-auto flex flex-wrap gap-2">
@@ -441,12 +518,16 @@ onUnmounted(() => {
                     >
                         <p class="text-forest-900">Aucun produit pour le moment.</p>
                         <button
+                            v-if="can_create_product"
                             type="button"
                             class="mt-4 text-sm font-medium text-forest-800 underline"
                             @click="openCreateModal"
                         >
                             Créer le premier produit
                         </button>
+                        <p v-else class="mt-4 text-sm text-ink-muted">
+                            Attendez qu’un cargo passe en statut « En mer ».
+                        </p>
                     </div>
                 </div>
 
@@ -480,7 +561,7 @@ onUnmounted(() => {
                 </div>
 
                 <p class="text-sm">
-                    <Link href="/boutique" class="font-medium text-forest-800 underline">Voir la boutique</Link>
+                    <Link href="/arrivages" class="font-medium text-forest-800 underline">Voir les arrivages</Link>
                 </p>
             </div>
         </section>
@@ -558,6 +639,29 @@ onUnmounted(() => {
                                 {{ category.name }}
                             </option>
                         </select>
+                    </div>
+
+                    <div v-if="!editingProduct">
+                        <label class="text-xs font-medium text-ink-muted">Cargo en mer</label>
+                        <select
+                            v-model.number="form.cargo_id"
+                            required
+                            class="mt-1 h-11 w-full border border-forest-900/15 bg-white px-3"
+                        >
+                            <option
+                                v-for="cargo in available_cargos"
+                                :key="cargo.id"
+                                :value="cargo.id"
+                            >
+                                {{ cargo.label }}{{ cargo.eta ? ` · ETA ${cargo.eta}` : '' }}
+                            </option>
+                        </select>
+                        <p v-if="form.errors.cargo_id || pageErrors.cargo_id" class="mt-1 text-xs text-red-600">
+                            {{ form.errors.cargo_id || pageErrors.cargo_id }}
+                        </p>
+                        <p class="mt-1 text-xs text-ink-muted">
+                            Visible avec ce cargo, pas en boutique.
+                        </p>
                     </div>
 
                     <div>

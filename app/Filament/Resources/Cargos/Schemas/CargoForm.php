@@ -3,7 +3,9 @@
 namespace App\Filament\Resources\Cargos\Schemas;
 
 use App\Enums\CargoStatus;
+use App\Filament\Resources\Cargos\Support\CargoItemsRepeater;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -22,11 +24,15 @@ class CargoForm
                 ->schema([
                     TextInput::make('code')
                         ->label('Code')
-                        ->required()
-                        ->unique(ignoreRecord: true)
-                        ->maxLength(40)
-                        ->placeholder('CG-ABJ-MTL-0726')
-                        ->helperText('Identifiant unique du cargo.'),
+                        ->disabled()
+                        ->dehydrated(false)
+                        ->placeholder('Généré automatiquement à la création')
+                        ->helperText('Le numéro de cargo est attribué automatiquement par le système.')
+                        ->visibleOn('edit'),
+                    Placeholder::make('code_preview')
+                        ->label('Code')
+                        ->content('Généré automatiquement à l’enregistrement.')
+                        ->visibleOn('create'),
                     TextInput::make('name')
                         ->label('Nom')
                         ->required()
@@ -68,6 +74,16 @@ class CargoForm
                         ->label('Notes internes / client')
                         ->rows(4)
                         ->columnSpanFull(),
+                ]),
+            Section::make('Produits de l’arrivage')
+                ->description('Ajoutez plusieurs lignes d’un coup : produit, quantité, prix.')
+                ->icon('heroicon-o-cube')
+                ->visibleOn('create')
+                ->schema([
+                    CargoItemsRepeater::make()
+                        ->minItems(0)
+                        ->defaultItems(0)
+                        ->helperText('Optionnel à la création — vous pourrez aussi ajouter des lignes ensuite.'),
                 ]),
         ]);
     }

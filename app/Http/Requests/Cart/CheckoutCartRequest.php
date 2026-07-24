@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Cart;
 
+use App\Support\SiteSettings;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\Validator;
@@ -19,6 +20,7 @@ class CheckoutCartRequest extends FormRequest
     public function rules(): array
     {
         $user = $this->user();
+        $requiresAccount = SiteSettings::checkoutRequiresAccount();
 
         return [
             'guest_name' => [$user ? 'nullable' : 'required', 'string', 'max:120'],
@@ -34,7 +36,7 @@ class CheckoutCartRequest extends FormRequest
             'create_account' => ['sometimes', 'boolean'],
             'password' => [
                 'nullable',
-                'required_if:create_account,1',
+                $requiresAccount && $user === null ? 'required' : 'required_if:create_account,1',
                 'required_if:create_account,true',
                 'confirmed',
                 Password::defaults(),
@@ -65,6 +67,17 @@ class CheckoutCartRequest extends FormRequest
         $validator->after(function (Validator $validator): void {
             if ($this->boolean('create_account') && $this->user() !== null) {
                 $validator->errors()->add('create_account', 'Vous êtes déjà connecté.');
+            }
+
+            if (
+                SiteSettings::checkoutRequiresAccount()
+                && $this->user() === null
+                && ! $this->boolean('create_account')
+            ) {
+                $validator->errors()->add(
+                    'create_account',
+                    'Un compte client est requis pour valider une commande. Connectez-vous ou créez un compte.',
+                );
             }
         });
     }
@@ -101,7 +114,8 @@ class CheckoutCartRequest extends FormRequest
             'shipping_postal_code' => strtoupper((string) $validated['shipping_postal_code']),
             'shipping_country' => strtoupper((string) ($validated['shipping_country'] ?? 'CA')),
             'notes' => $validated['notes'] ?? null,
-            'create_account' => $this->boolean('create_account'),
+            'create_account' => $this->boolean('create_account')
+                || (SiteSettings::checkoutRequiresAccount() && $this->user() === null),
             'password' => isset($validated['password']) && is_string($validated['password'])
                 ? $validated['password']
                 : null,

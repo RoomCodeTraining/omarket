@@ -26,6 +26,9 @@ const form = useForm({
     description: '',
     quantity: 1,
     budget: null as number | null,
+    has_supplier: false,
+    supplier_name: '',
+    supplier_contact: '',
 });
 
 const isLoggedIn = computed(() => props.is_authenticated || authUser.value !== null);
@@ -33,7 +36,16 @@ const isLoggedIn = computed(() => props.is_authenticated || authUser.value !== n
 function submit() {
     form.post('/courses', {
         preserveScroll: true,
-        onSuccess: () => form.reset('title', 'description', 'quantity', 'budget'),
+        onSuccess: () =>
+            form.reset(
+                'title',
+                'description',
+                'quantity',
+                'budget',
+                'has_supplier',
+                'supplier_name',
+                'supplier_contact',
+            ),
     });
 }
 </script>
@@ -171,6 +183,64 @@ function submit() {
                             </div>
                         </div>
 
+                        <fieldset class="mt-6 space-y-3 border border-forest-900/10 p-4">
+                            <legend class="px-1 text-xs font-medium tracking-wide text-ink-muted uppercase">
+                                Fournisseur
+                            </legend>
+                            <p class="text-sm text-ink-muted">
+                                Avez-vous déjà un fournisseur en Côte d’Ivoire pour ce produit ?
+                            </p>
+                            <div class="flex flex-col gap-2 sm:flex-row sm:gap-6">
+                                <label class="flex items-center gap-2 text-sm text-forest-900">
+                                    <input
+                                        v-model="form.has_supplier"
+                                        type="radio"
+                                        :value="true"
+                                        class="accent-forest-900"
+                                    />
+                                    Oui, j’ai un fournisseur
+                                </label>
+                                <label class="flex items-center gap-2 text-sm text-forest-900">
+                                    <input
+                                        v-model="form.has_supplier"
+                                        type="radio"
+                                        :value="false"
+                                        class="accent-forest-900"
+                                    />
+                                    Non, je n’en ai pas
+                                </label>
+                            </div>
+                            <p v-if="form.errors.has_supplier" class="text-xs text-red-600">
+                                {{ form.errors.has_supplier }}
+                            </p>
+                            <div v-if="form.has_supplier" class="grid gap-3 pt-1">
+                                <div>
+                                    <label class="text-xs font-medium text-ink-muted">Nom du fournisseur</label>
+                                    <input
+                                        v-model="form.supplier_name"
+                                        type="text"
+                                        required
+                                        class="mt-1 h-11 w-full border border-forest-900/15 px-3"
+                                        placeholder="Ex. Marché de Treichville"
+                                    />
+                                    <p v-if="form.errors.supplier_name" class="mt-1 text-xs text-red-600">
+                                        {{ form.errors.supplier_name }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label class="text-xs font-medium text-ink-muted">
+                                        Contact / détails (optionnel)
+                                    </label>
+                                    <input
+                                        v-model="form.supplier_contact"
+                                        type="text"
+                                        class="mt-1 h-11 w-full border border-forest-900/15 px-3"
+                                        placeholder="Téléphone, quartier, WhatsApp…"
+                                    />
+                                </div>
+                            </div>
+                        </fieldset>
+
                         <button
                             type="submit"
                             class="mt-8 inline-flex min-h-12 w-full items-center justify-center bg-forest-900 px-6 text-sm font-semibold text-white transition hover:bg-forest-800 disabled:opacity-50 sm:w-auto"
@@ -185,15 +255,21 @@ function submit() {
                         <ol class="mt-6 space-y-5">
                             <li class="flex gap-4">
                                 <span class="font-display text-2xl text-brass">01</span>
-                                <p class="pt-1 text-ink-muted">Vous décrivez le produit.</p>
+                                <p class="pt-1 text-ink-muted">
+                                    Vous décrivez le produit et précisez si vous avez un fournisseur.
+                                </p>
                             </li>
                             <li class="flex gap-4">
                                 <span class="font-display text-2xl text-brass">02</span>
-                                <p class="pt-1 text-ink-muted">Nous établissons un devis clair.</p>
+                                <p class="pt-1 text-ink-muted">
+                                    Nous validons la demande, puis envoyons un devis clair.
+                                </p>
                             </li>
                             <li class="flex gap-4">
                                 <span class="font-display text-2xl text-brass">03</span>
-                                <p class="pt-1 text-ink-muted">Vous validez, on s’occupe du reste.</p>
+                                <p class="pt-1 text-ink-muted">
+                                    Après validation, la course part sur un cargo — vous êtes informé.
+                                </p>
                             </li>
                         </ol>
 

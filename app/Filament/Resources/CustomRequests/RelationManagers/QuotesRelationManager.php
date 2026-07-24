@@ -113,7 +113,7 @@ class QuotesRelationManager extends RelationManager
                     ->visible(fn (Quote $record): bool => $record->status === QuoteStatus::Draft)
                     ->requiresConfirmation()
                     ->modalHeading('Envoyer ce devis ?')
-                    ->modalDescription('Le client recevra un e-mail et la course passera en « Devis envoyé ».')
+                    ->modalDescription('Le client recevra un e-mail. La course doit être validée au préalable.')
                     ->action(function (Quote $record, SendQuote $sendQuote): void {
                         $sendQuote->handle($record);
 

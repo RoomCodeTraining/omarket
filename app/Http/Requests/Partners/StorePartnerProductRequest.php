@@ -21,6 +21,7 @@ class StorePartnerProductRequest extends FormRequest
     {
         return [
             'category_id' => ['required', 'integer', 'exists:categories,id'],
+            'cargo_id' => ['required', 'integer', 'exists:cargos,id'],
             'name' => ['required', 'string', 'max:160'],
             'description' => ['nullable', 'string', 'max:5000'],
             'price' => ['required', 'numeric', 'min:0.01'],
@@ -32,7 +33,7 @@ class StorePartnerProductRequest extends FormRequest
     }
 
     /**
-     * @return array{category_id: int, name: string, description: string|null, price_cents: int, stock_quantity: int, unit: string, image: UploadedFile|null, image_path: string|null, image_base64: string|null}
+     * @return array{category_id: int, cargo_id: int, name: string, description: string|null, price_cents: int, stock_quantity: int, unit: string, image: UploadedFile|null, image_path: string|null, image_base64: string|null}
      */
     public function payload(): array
     {
@@ -46,6 +47,7 @@ class StorePartnerProductRequest extends FormRequest
 
         return [
             'category_id' => (int) $validated['category_id'],
+            'cargo_id' => (int) $validated['cargo_id'],
             'name' => $validated['name'],
             'description' => $validated['description'] ?? null,
             'price_cents' => (int) round(((float) $validated['price']) * 100),

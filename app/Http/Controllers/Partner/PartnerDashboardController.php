@@ -10,6 +10,7 @@ use App\Enums\ProductStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Partners\StorePartnerProductRequest;
 use App\Http\Requests\Partners\UpdatePartnerProductRequest;
+use App\Models\Cargo;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
@@ -39,25 +40,50 @@ class PartnerDashboardController extends Controller
             'stock_units' => (int) (clone $productsQuery)->sum('stock_quantity'),
         ];
 
+        $depositReminderDays = SiteSettings::partnerDepositReminderDays();
+
         $products = Product::query()
-            ->with('category:id,name')
+            ->with(['category:id,name', 'cargo:id,code,name,status,estimated_arrival_at'])
+            ->withSum('orderItems as ordered_quantity', 'quantity')
             ->where('user_id', $user->id)
             ->latest()
             ->get()
-            ->map(fn (Product $product) => [
-                'id' => $product->id,
-                'category_id' => $product->category_id,
-                'name' => $product->name,
-                'description' => $product->description,
-                'category' => $product->category?->name,
-                'price' => $product->priceFormatted(),
-                'price_amount' => round($product->price_cents / 100, 2),
-                'stock_quantity' => $product->stock_quantity,
-                'unit' => $product->unit,
-                'status' => $product->status->value,
-                'status_label' => $product->status->label(),
-                'image_url' => $product->imageUrl(),
-            ]);
+            ->map(function (Product $product) use ($depositReminderDays) {
+                $orderedQuantity = (int) ($product->ordered_quantity ?? 0);
+                $depositDeadline = null;
+
+                if ($product->cargo?->estimated_arrival_at !== null) {
+                    $depositDeadline = $product->cargo->estimated_arrival_at
+                        ->copy()
+                        ->subDays($depositReminderDays)
+                        ->format('d/m/Y');
+                }
+
+                return [
+                    'id' => $product->id,
+                    'category_id' => $product->category_id,
+                    'cargo_id' => $product->cargo_id,
+                    'name' => $product->name,
+                    'description' => $product->description,
+                    'category' => $product->category?->name,
+                    'cargo_code' => $product->cargo?->code,
+                    'cargo_name' => $product->cargo?->name,
+                    'cargo_eta' => $product->cargo?->estimated_arrival_at?->format('d/m/Y'),
+                    'price' => $product->priceFormatted(),
+                    'price_amount' => round($product->price_cents / 100, 2),
+                    'stock_quantity' => $product->stock_quantity,
+                    'unit' => $product->unit,
+                    'status' => $product->status->value,
+                    'status_label' => $product->status->label(),
+                    'warehouse_deposited' => $product->isWarehouseDeposited(),
+                    'warehouse_deposited_at' => $product->warehouse_deposited_at?->format('d/m/Y H:i'),
+                    'warehouse_deposited_quantity' => $product->warehouse_deposited_quantity,
+                    'ordered_quantity' => $orderedQuantity,
+                    'deposit_deadline' => $depositDeadline,
+                    'needs_deposit' => ! $product->isWarehouseDeposited() && $orderedQuantity > 0,
+                    'image_url' => $product->imageUrl(),
+                ];
+            });
 
         $orders = Order::query()
             ->with(['items' => fn ($query) => $query->whereHas(
@@ -85,6 +111,17 @@ class PartnerDashboardController extends Controller
                 ])->values(),
             ]);
 
+        $availableCargos = Cargo::query()
+            ->acceptsPartnerProducts()
+            ->orderBy('estimated_arrival_at')
+            ->get(['id', 'code', 'name', 'status', 'estimated_arrival_at'])
+            ->map(fn (Cargo $cargo) => [
+                'id' => $cargo->id,
+                'label' => "{$cargo->code} — {$cargo->name}",
+                'eta' => $cargo->estimated_arrival_at?->format('d/m/Y'),
+                'status_label' => $cargo->status->label(),
+            ]);
+
         return Inertia::render('Partner/Dashboard', [
             'partner' => [
                 'name' => $user->name,
@@ -95,6 +132,9 @@ class PartnerDashboardController extends Controller
             'stats' => $stats,
             'products' => $products,
             'orders' => $orders,
+            'available_cargos' => $availableCargos,
+            'can_create_product' => $availableCargos->isNotEmpty(),
+            'warehouse' => SiteSettings::warehouse(),
             'categories' => Category::query()
                 ->where('is_active', true)
                 ->orderBy('position')
@@ -248,7 +288,7 @@ class PartnerDashboardController extends Controller
 
         return back()->with(
             'success',
-            "« {$product->name} » retiré de la boutique.",
+            "« {$product->name} » retiré de l’arrivage.",
         );
     }
 }

@@ -109,6 +109,9 @@ class CatalogSeeder extends Seeder
                     'status' => ProductStatus::Published,
                     'image_path' => $categoryImages[$item['category']] ?? Product::DEFAULT_IMAGE_PATH,
                     'is_featured' => $item['featured'],
+                    'listed_in_shop' => true,
+                    'user_id' => null,
+                    'cargo_id' => null,
                 ],
             );
 
@@ -203,7 +206,11 @@ class CatalogSeeder extends Seeder
                 'description' => 'Je cherche du capitaine fumé authentique, environ 2 kg, pour une fête familiale à Montréal.',
                 'quantity' => 2,
                 'budget_cents' => 8000,
+                'has_supplier' => true,
+                'supplier_name' => 'Fumoir d’Abidjan',
+                'supplier_contact' => 'WhatsApp +225…',
                 'status' => CustomRequestStatus::Quoted,
+                'validated_at' => now()->subDays(3),
             ],
         );
 
@@ -226,6 +233,7 @@ class CatalogSeeder extends Seeder
                 'description' => 'Besoin de feuilles de gombo séchées pour sauce, 3 sachets.',
                 'quantity' => 3,
                 'budget_cents' => 3500,
+                'has_supplier' => false,
                 'status' => CustomRequestStatus::Submitted,
             ],
         );

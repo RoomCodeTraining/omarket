@@ -20,7 +20,7 @@ class ShopController extends Controller
             ->orderBy('position')
             ->get(['id', 'name', 'slug']);
 
-        $baseQuery = Product::query()->published();
+        $baseQuery = Product::query()->published()->listedInShop();
 
         $products = (clone $baseQuery)
             ->with('category:id,name,slug')

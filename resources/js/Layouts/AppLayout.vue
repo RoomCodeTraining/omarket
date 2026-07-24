@@ -21,6 +21,9 @@ const mobileOpen = ref(false);
 const isHome = computed(() => page.url === '/' || page.url.split('?')[0] === '/');
 const useDarkNav = computed(() => isHome.value && !scrolled.value && !mobileOpen.value);
 const cartCount = computed(() => (page.props.cart as { count?: number } | undefined)?.count ?? 0);
+const cargoCartCount = computed(
+    () => (page.props.cargo_cart as { count?: number } | undefined)?.count ?? 0,
+);
 
 const authUser = computed(
     () => (page.props.auth as { user?: AuthUser | null } | undefined)?.user ?? null,
@@ -148,6 +151,25 @@ onUnmounted(() => {
 
                 <div class="flex shrink-0 items-center gap-2 sm:gap-3">
                     <CartNavButton :dark="useDarkNav" @click="closeMobile" />
+                    <Link
+                        v-if="cargoCartCount > 0"
+                        href="/panier-arrivage"
+                        class="relative hidden h-11 items-center px-2 text-sm font-medium transition sm:inline-flex"
+                        :class="
+                            useDarkNav
+                                ? 'text-white hover:bg-white/10'
+                                : 'text-forest-900 hover:bg-forest-900/5'
+                        "
+                        :aria-label="`Panier arrivage, ${cargoCartCount} article${cargoCartCount > 1 ? 's' : ''}`"
+                    >
+                        Arrivage
+                        <span
+                            class="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold"
+                            :class="useDarkNav ? 'bg-brass text-forest-950' : 'bg-forest-900 text-white'"
+                        >
+                            {{ cargoCartCount > 99 ? '99+' : cargoCartCount }}
+                        </span>
+                    </Link>
 
                     <UserNavAvatar
                         v-if="authUser"
@@ -205,12 +227,25 @@ onUnmounted(() => {
                         class="flex items-center justify-between px-2 py-3 text-base font-medium text-forest-900"
                         @click="closeMobile"
                     >
-                        <span>Panier</span>
+                        <span>Panier boutique</span>
                         <span
                             v-if="cartCount > 0"
                             class="inline-flex min-w-6 items-center justify-center bg-forest-900 px-1.5 py-0.5 text-xs font-bold text-white"
                         >
                             {{ cartCount }}
+                        </span>
+                    </Link>
+                    <Link
+                        v-if="cargoCartCount > 0"
+                        href="/panier-arrivage"
+                        class="flex items-center justify-between px-2 py-3 text-base font-medium text-forest-900"
+                        @click="closeMobile"
+                    >
+                        <span>Panier arrivage</span>
+                        <span
+                            class="inline-flex min-w-6 items-center justify-center bg-forest-900 px-1.5 py-0.5 text-xs font-bold text-white"
+                        >
+                            {{ cargoCartCount }}
                         </span>
                     </Link>
 

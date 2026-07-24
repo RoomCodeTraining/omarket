@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\CustomRequests\Schemas;
 
 use App\Enums\CustomRequestStatus;
+use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -44,6 +45,44 @@ class CustomRequestInfolist
                     TextEntry::make('created_at')
                         ->label('Reçue le')
                         ->dateTime('d/m/Y H:i'),
+                    TextEntry::make('validated_at')
+                        ->label('Validée le')
+                        ->dateTime('d/m/Y H:i')
+                        ->placeholder('Pas encore validée'),
+                ]),
+            Section::make('Fournisseur')
+                ->icon('heroicon-o-building-storefront')
+                ->columns(2)
+                ->schema([
+                    IconEntry::make('has_supplier')
+                        ->label('A un fournisseur')
+                        ->boolean(),
+                    TextEntry::make('supplier_name')
+                        ->label('Nom')
+                        ->placeholder('—'),
+                    TextEntry::make('supplier_contact')
+                        ->label('Contact')
+                        ->placeholder('—')
+                        ->columnSpanFull(),
+                ]),
+            Section::make('Cargo')
+                ->icon('heroicon-o-truck')
+                ->columns(2)
+                ->schema([
+                    TextEntry::make('cargo.code')
+                        ->label('Code')
+                        ->placeholder('Non associé'),
+                    TextEntry::make('cargo.name')
+                        ->label('Nom')
+                        ->placeholder('—'),
+                    TextEntry::make('cargo.estimated_arrival_at')
+                        ->label('ETA Canada')
+                        ->date('d/m/Y')
+                        ->placeholder('—'),
+                    TextEntry::make('cargo_assigned_at')
+                        ->label('Associé le')
+                        ->dateTime('d/m/Y H:i')
+                        ->placeholder('—'),
                 ]),
         ]);
     }

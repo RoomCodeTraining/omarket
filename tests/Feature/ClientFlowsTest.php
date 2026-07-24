@@ -63,9 +63,33 @@ it('submits a custom request', function () {
         'description' => 'Besoin de 5 kg d’ignames pour le week-end.',
         'quantity' => 5,
         'budget' => 40,
+        'has_supplier' => false,
     ])->assertRedirect();
 
-    expect(CustomRequest::query()->where('title', 'Ignames fraîches')->exists())->toBeTrue();
+    $request = CustomRequest::query()->where('title', 'Ignames fraîches')->first();
+
+    expect($request)->not->toBeNull()
+        ->and($request->has_supplier)->toBeFalse();
+});
+
+it('submits a custom request with a supplier', function () {
+    $this->post(route('courses.store'), [
+        'guest_name' => 'Awa Fournisseur',
+        'guest_email' => 'awa.supplier@example.com',
+        'title' => 'Poisson fumé',
+        'description' => 'Capitaine fumé du bord de lagune.',
+        'quantity' => 3,
+        'has_supplier' => true,
+        'supplier_name' => 'Marché d’Abobo',
+        'supplier_contact' => '+225 07 00 00 00',
+    ])->assertRedirect();
+
+    $request = CustomRequest::query()->where('title', 'Poisson fumé')->first();
+
+    expect($request)->not->toBeNull()
+        ->and($request->has_supplier)->toBeTrue()
+        ->and($request->supplier_name)->toBe('Marché d’Abobo')
+        ->and($request->supplier_contact)->toBe('+225 07 00 00 00');
 });
 
 it('submits a custom request for an authenticated client without contact fields', function () {
@@ -79,6 +103,7 @@ it('submits a custom request for an authenticated client without contact fields'
             'title' => 'Huile de palme',
             'description' => 'Bidon de 5 L, qualité rouge.',
             'quantity' => 2,
+            'has_supplier' => false,
         ])
         ->assertRedirect();
 
@@ -87,7 +112,8 @@ it('submits a custom request for an authenticated client without contact fields'
     expect($request)->not->toBeNull()
         ->and($request->user_id)->toBe($client->id)
         ->and($request->guest_name)->toBe('Awa Connectée')
-        ->and($request->guest_email)->toBe('awa.courses@example.com');
+        ->and($request->guest_email)->toBe('awa.courses@example.com')
+        ->and($request->has_supplier)->toBeFalse();
 });
 
 it('checks out the cart as a guest', function () {

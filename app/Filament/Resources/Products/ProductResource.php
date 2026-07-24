@@ -23,7 +23,6 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Str;
 
 class ProductResource extends Resource
 {
@@ -52,6 +51,7 @@ class ProductResource extends Resource
             Section::make('Identité du produit')
                 ->description('Informations visibles en boutique.')
                 ->icon('heroicon-o-tag')
+                ->columnSpanFull()
                 ->columns(2)
                 ->schema([
                     Select::make('category_id')
@@ -63,31 +63,12 @@ class ProductResource extends Resource
                     TextInput::make('name')
                         ->label('Nom')
                         ->required()
-                        ->maxLength(160)
-                        ->live(onBlur: true)
-                        ->afterStateUpdated(function (?string $state, callable $set, ?Product $record): void {
-                            if ($record) {
-                                return;
-                            }
-
-                            $set('slug', Str::slug((string) $state));
-                        }),
-                    TextInput::make('slug')
-                        ->label('Slug')
-                        ->required()
-                        ->maxLength(180)
-                        ->unique(ignoreRecord: true)
-                        ->helperText('URL boutique — généré automatiquement si possible.'),
+                        ->maxLength(160),
                     Textarea::make('description')
                         ->label('Description')
                         ->rows(5)
                         ->columnSpanFull(),
-                ]),
-            Section::make('Prix & stock')
-                ->description('Tarification et disponibilité locale.')
-                ->icon('heroicon-o-banknotes')
-                ->columns(3)
-                ->schema([
+
                     TextInput::make('price_cents')
                         ->label('Prix (cents CAD)')
                         ->numeric()
@@ -106,9 +87,10 @@ class ProductResource extends Resource
                         ->maxLength(40)
                         ->default(fn (): string => SiteSettings::defaultProductUnit()),
                 ]),
-            Section::make('Publication')
-                ->description('Catalogue Ôhéfê : publication directe, sans revue partenaire.')
+            Section::make('Publication & visuel')
+                ->description('Activez le produit pour l’afficher dans la boutique et définissez le visuel.')
                 ->icon('heroicon-o-eye')
+                ->columnSpanFull()
                 ->columns(2)
                 ->schema([
                     Select::make('status')
@@ -118,15 +100,16 @@ class ProductResource extends Resource
                             ->mapWithKeys(fn (ProductStatus $status) => [$status->value => $status->label()]))
                         ->required()
                         ->default(ProductStatus::Published->value),
+                    Toggle::make('listed_in_shop')
+                        ->label('Visible en boutique')
+                        ->helperText('Désactivé = produit hors boutique (ex. réservé cargo / stock interne).')
+                        ->default(true)
+                        ->inline(false),
                     Toggle::make('is_featured')
                         ->label('Coup de cœur')
-                        ->helperText('Mis en avant sur la page d’accueil.')
+                        ->helperText('Mis en avant sur la page d’accueil (si visible en boutique).')
                         ->inline(false),
-                ]),
-            Section::make('Visuel')
-                ->description('Image produit affichée en boutique.')
-                ->icon('heroicon-o-photo')
-                ->schema([
+
                     ProductImageUpload::make(),
                 ]),
         ]);

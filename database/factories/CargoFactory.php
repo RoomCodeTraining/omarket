@@ -33,4 +33,9 @@ class CargoFactory extends Factory
     {
         return $this->state(fn () => ['status' => CargoStatus::Open]);
     }
+
+    public function inTransit(): static
+    {
+        return $this->state(fn () => ['status' => CargoStatus::InTransit]);
+    }
 }

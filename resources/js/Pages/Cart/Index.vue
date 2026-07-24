@@ -22,6 +22,7 @@ const props = defineProps<{
     total: string;
     count: number;
     can_checkout: boolean;
+    checkout_requires_account: boolean;
 }>();
 
 const page = usePage();
@@ -31,7 +32,7 @@ const authUser = computed(
         null,
 );
 
-const createAccount = ref(false);
+const createAccount = ref(props.checkout_requires_account && !authUser.value);
 
 const form = useForm({
     guest_name: authUser.value?.name ?? '',
@@ -44,14 +45,14 @@ const form = useForm({
     shipping_postal_code: '',
     shipping_country: 'CA',
     notes: '',
-    create_account: false as boolean,
+    create_account: props.checkout_requires_account && !authUser.value,
     password: '',
     password_confirmation: '',
 });
 
 watch(createAccount, (value) => {
-    form.create_account = value;
-    if (!value) {
+    form.create_account = value || props.checkout_requires_account;
+    if (!value && !props.checkout_requires_account) {
         form.password = '';
         form.password_confirmation = '';
         form.clearErrors('password', 'password_confirmation');
@@ -67,7 +68,7 @@ function removeItem(productId: number) {
 }
 
 function submitCheckout() {
-    form.create_account = createAccount.value;
+    form.create_account = createAccount.value || props.checkout_requires_account;
     form.post('/panier/commander', { preserveScroll: true });
 }
 </script>
@@ -168,6 +169,14 @@ function submitCheckout() {
                                 </div>
                             </template>
                             <template v-else>
+                                <p
+                                    v-if="checkout_requires_account"
+                                    class="border border-forest-900/10 bg-stone-soft px-4 py-3 text-sm text-forest-800"
+                                >
+                                    Un compte client est requis pour valider la commande.
+                                    <Link href="/connexion" class="font-medium underline">Se connecter</Link>
+                                    ou créez un compte ci-dessous.
+                                </p>
                                 <div>
                                     <label class="text-xs font-medium text-ink-muted">Nom</label>
                                     <input
@@ -192,7 +201,10 @@ function submitCheckout() {
                                         {{ form.errors.guest_email }}
                                     </p>
                                 </div>
-                                <label class="flex items-start gap-3 text-sm text-forest-800">
+                                <label
+                                    v-if="!checkout_requires_account"
+                                    class="flex items-start gap-3 text-sm text-forest-800"
+                                >
                                     <input
                                         v-model="createAccount"
                                         type="checkbox"
@@ -200,13 +212,23 @@ function submitCheckout() {
                                     />
                                     <span>Créer un compte pour suivre ma commande</span>
                                 </label>
-                                <div v-if="createAccount" class="space-y-3">
+                                <p
+                                    v-else
+                                    class="text-sm font-medium text-forest-800"
+                                >
+                                    Création de compte
+                                </p>
+                                <p v-if="form.errors.create_account" class="text-xs text-red-600">
+                                    {{ form.errors.create_account }}
+                                </p>
+                                <div v-if="createAccount || checkout_requires_account" class="space-y-3">
                                     <div>
                                         <label class="text-xs font-medium text-ink-muted">Mot de passe</label>
                                         <input
                                             v-model="form.password"
                                             type="password"
                                             autocomplete="new-password"
+                                            required
                                             class="mt-1 h-11 w-full border border-forest-900/15 px-3"
                                         />
                                         <p v-if="form.errors.password" class="mt-1 text-xs text-red-600">
@@ -221,6 +243,7 @@ function submitCheckout() {
                                             v-model="form.password_confirmation"
                                             type="password"
                                             autocomplete="new-password"
+                                            required
                                             class="mt-1 h-11 w-full border border-forest-900/15 px-3"
                                         />
                                     </div>

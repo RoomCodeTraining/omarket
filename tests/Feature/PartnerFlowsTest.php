@@ -7,6 +7,7 @@ use App\Actions\Products\CreatePartnerProduct;
 use App\Actions\Products\SubmitProductForReview;
 use App\Enums\ProductStatus;
 use App\Enums\UserRole;
+use App\Models\Cargo;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -20,6 +21,11 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+
+function partnerCargo(): Cargo
+{
+    return Cargo::factory()->inTransit()->create();
+}
 
 it('registers a partner without publish rights', function () {
     Notification::fake();
@@ -53,9 +59,11 @@ it('allows product submit only after partner is approved', function () {
     $admin = User::factory()->admin()->create();
     $category = Category::factory()->create();
     $partner = User::factory()->partner()->create();
+    $cargo = partnerCargo();
 
     $product = app(CreatePartnerProduct::class)->handle($partner, [
         'category_id' => $category->id,
+        'cargo_id' => $cargo->id,
         'name' => 'Attiéké test',
         'description' => 'Test',
         'price_cents' => 1200,
@@ -63,7 +71,9 @@ it('allows product submit only after partner is approved', function () {
         'unit' => 'sachet',
     ]);
 
-    expect($product->status)->toBe(ProductStatus::Draft);
+    expect($product->status)->toBe(ProductStatus::Draft)
+        ->and($product->listed_in_shop)->toBeFalse()
+        ->and($product->cargo_id)->toBe($cargo->id);
 
     expect(fn () => app(SubmitProductForReview::class)->handle($product, $partner))
         ->toThrow(ValidationException::class);
@@ -83,7 +93,8 @@ it('allows product submit only after partner is approved', function () {
 
     $published = app(ApproveProduct::class)->handle($submitted);
 
-    expect($published->status)->toBe(ProductStatus::Published);
+    expect($published->status)->toBe(ProductStatus::Published)
+        ->and($published->listed_in_shop)->toBeFalse();
 });
 
 it('registers a partner via http and opens the dashboard', function () {
@@ -116,10 +127,12 @@ it('stores a partner product with an uploaded image', function () {
 
     $partner = User::factory()->approvedPartner()->create();
     $category = Category::factory()->create();
+    $cargo = partnerCargo();
 
     $this->actingAs($partner)
         ->post(route('partner.products.store'), [
             'category_id' => $category->id,
+            'cargo_id' => $cargo->id,
             'name' => 'Attiéké photo',
             'description' => 'Avec image',
             'price' => 12.5,
@@ -149,6 +162,8 @@ it('stores a partner product using a previously uploaded raw image', function ()
 
     $partner = User::factory()->approvedPartner()->create();
     $category = Category::factory()->create();
+    $cargo = partnerCargo();
+
     $png = UploadedFile::fake()->image('x.png', 80, 80)->getContent();
 
     $upload = $this->actingAs($partner)->call(
@@ -169,6 +184,7 @@ it('stores a partner product using a previously uploaded raw image', function ()
     $this->actingAs($partner)
         ->post(route('partner.products.store'), [
             'category_id' => $category->id,
+            'cargo_id' => $cargo->id,
             'name' => 'Attiéké raw upload',
             'description' => 'Via endpoint image',
             'price' => 9.5,
@@ -189,6 +205,7 @@ it('stores a partner product using a multipart image pre-upload', function () {
 
     $partner = User::factory()->approvedPartner()->create();
     $category = Category::factory()->create();
+    $cargo = partnerCargo();
 
     $this->actingAs($partner)
         ->post(route('partner.products.image.store'), [
@@ -202,6 +219,7 @@ it('stores a partner product using a multipart image pre-upload', function () {
     $this->actingAs($partner)
         ->post(route('partner.products.store'), [
             'category_id' => $category->id,
+            'cargo_id' => $cargo->id,
             'name' => 'Attiéké multipart pre',
             'description' => 'Via multipart image endpoint',
             'price' => 6.5,
@@ -223,6 +241,8 @@ it('stores a partner product using chunked json image upload', function () {
 
     $partner = User::factory()->approvedPartner()->create();
     $category = Category::factory()->create();
+    $cargo = partnerCargo();
+
     $png = UploadedFile::fake()->image('chunk.png', 120, 120)->getContent();
     $uploadId = (string) Str::uuid();
     $chunks = str_split($png, 64);
@@ -245,6 +265,7 @@ it('stores a partner product using chunked json image upload', function () {
     $this->actingAs($partner)
         ->post(route('partner.products.store'), [
             'category_id' => $category->id,
+            'cargo_id' => $cargo->id,
             'name' => 'Attiéké chunks',
             'description' => 'Via chunks',
             'price' => 7.5,
@@ -265,11 +286,14 @@ it('stores a partner product with a base64 image in the create payload', functio
 
     $partner = User::factory()->approvedPartner()->create();
     $category = Category::factory()->create();
+    $cargo = partnerCargo();
+
     $png = base64_encode(UploadedFile::fake()->image('y.png', 60, 60)->getContent());
 
     $this->actingAs($partner)
         ->post(route('partner.products.store'), [
             'category_id' => $category->id,
+            'cargo_id' => $cargo->id,
             'name' => 'Attiéké json image',
             'description' => 'Via image_base64',
             'price' => 8.5,
@@ -294,6 +318,8 @@ it('updates a partner product and can unpublish a published one', function () {
     $product = Product::factory()->create([
         'category_id' => $category->id,
         'user_id' => $partner->id,
+        'cargo_id' => partnerCargo()->id,
+        'listed_in_shop' => false,
         'status' => ProductStatus::Published,
         'name' => 'Attiéké publié',
         'slug' => 'attieke-publie',
@@ -335,12 +361,16 @@ it('lists partner orders that include their products', function () {
     $ownProduct = Product::factory()->create([
         'category_id' => $category->id,
         'user_id' => $partner->id,
+        'cargo_id' => partnerCargo()->id,
+        'listed_in_shop' => false,
         'status' => ProductStatus::Published,
     ]);
 
     $otherProduct = Product::factory()->create([
         'category_id' => $category->id,
         'user_id' => $otherPartner->id,
+        'cargo_id' => partnerCargo()->id,
+        'listed_in_shop' => false,
         'status' => ProductStatus::Published,
     ]);
 
@@ -374,15 +404,18 @@ it('only shows published products in the shop', function () {
     Product::factory()->create([
         'category_id' => $category->id,
         'user_id' => $partner->id,
-        'status' => ProductStatus::PendingReview,
-        'name' => 'Produit en revue',
-        'slug' => 'produit-en-revue',
+        'cargo_id' => partnerCargo()->id,
+        'listed_in_shop' => false,
+        'status' => ProductStatus::Published,
+        'name' => 'Produit partenaire publié',
+        'slug' => 'produit-partenaire-publie',
     ]);
 
     Product::factory()->create([
         'category_id' => $category->id,
         'user_id' => null,
         'status' => ProductStatus::Published,
+        'listed_in_shop' => true,
         'name' => 'Produit public',
         'slug' => 'produit-public',
     ]);
@@ -394,6 +427,6 @@ it('only shows published products in the shop', function () {
             ->where('products.data', fn ($products) => collect($products)->contains(
                 fn ($product) => $product['slug'] === 'produit-public',
             ) && collect($products)->doesntContain(
-                fn ($product) => $product['slug'] === 'produit-en-revue',
+                fn ($product) => $product['slug'] === 'produit-partenaire-publie',
             )));
 });

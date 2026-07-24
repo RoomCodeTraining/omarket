@@ -26,6 +26,7 @@ class HomeController extends Controller
         $featured = Product::query()
             ->with('category:id,name')
             ->published()
+            ->listedInShop()
             ->where('is_featured', true)
             ->orderBy('name')
             ->limit(4)

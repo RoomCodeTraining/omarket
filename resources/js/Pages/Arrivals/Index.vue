@@ -1,72 +1,84 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHero from '@/Components/Landing/PageHero.vue';
 import ProductImage from '@/Components/Shop/ProductImage.vue';
 
-type CargoItem = {
-    id: number;
-    product_name: string | null;
-    category: string | null;
-    image_url: string;
-    quantity_remaining: number;
-    quantity_available: number;
-    quantity_reserved: number;
-    unit_price: string;
-    unit: string | null;
-};
-
-type Cargo = {
+type CargoCard = {
     id: number;
     code: string;
     name: string;
     route: string;
+    status: string;
     status_label: string;
     departure_at: string | null;
     estimated_arrival_at: string | null;
-    notes: string | null;
-    items: CargoItem[];
+    products_count: number;
+    accepts_reservations: boolean;
 };
 
-defineProps<{
-    cargos: Cargo[];
-    nextArrival?: {
-        label: string;
-        eta: string;
-        name?: string;
-        code?: string;
-    } | null;
+type ArrivalProduct = {
+    id: number;
+    cargo_id: number;
+    cargo_code: string;
+    cargo_name: string;
+    estimated_arrival_at: string | null;
+    product_name: string | null;
+    description: string | null;
+    category: string | null;
+    image_url: string;
+    quantity_remaining: number;
+    unit_price: string;
+    unit: string | null;
+    is_partner: boolean;
+    partner_name: string | null;
+    can_reserve: boolean;
+};
+
+const props = defineProps<{
+    cargos: CargoCard[];
+    products: ArrivalProduct[];
+    filters: { cargo: number | null };
+    cargo_cart: { count: number; cargo_id: number | null };
 }>();
 
-const activeItemId = ref<number | null>(null);
+const page = usePage();
+const sharedCargoCartCount = computed(
+    () => (page.props.cargo_cart as { count?: number } | undefined)?.count ?? props.cargo_cart.count,
+);
 
-const form = useForm({
-    cargo_item_id: 0,
-    quantity: 1,
-    guest_name: '',
-    guest_email: '',
-});
+const addingId = ref<number | null>(null);
 
-function openReserve(item: CargoItem) {
-    activeItemId.value = item.id;
-    form.cargo_item_id = item.id;
-    form.quantity = 1;
-    form.clearErrors();
-}
-
-function closeReserve() {
-    activeItemId.value = null;
-}
-
-function submitReserve() {
-    form.post('/reservations', {
-        preserveScroll: true,
-        onSuccess: () => {
-            activeItemId.value = null;
-            form.reset('quantity');
+function selectCargo(cargoId: number | null) {
+    router.get(
+        '/arrivages',
+        cargoId ? { cargo: cargoId } : {},
+        {
+            preserveScroll: true,
+            preserveState: true,
+            replace: true,
+            only: ['products', 'filters', 'cargos', 'cargo_cart'],
         },
-    });
+    );
+}
+
+function addToCart(product: ArrivalProduct) {
+    if (!product.can_reserve || addingId.value) {
+        return;
+    }
+
+    addingId.value = product.id;
+    router.post(
+        '/panier-arrivage',
+        { cargo_item_id: product.id, quantity: 1 },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                addingId.value = null;
+            },
+        },
+    );
 }
 </script>
 
@@ -76,177 +88,210 @@ function submitReserve() {
             <meta
                 head-key="description"
                 name="description"
-                content="Réservez vos produits ivoiriens avant l’arrivée du cargo au Canada avec Ôhéfê Market."
+                content="Réservez plusieurs produits du même cargo avant son arrivée au Canada avec Ôhéfê Market."
             />
         </Head>
 
         <PageHero
             eyebrow="Arrivages"
-            title="Réservez avant l’arrivée du cargo"
-            description="Anticipez vos besoins : choisissez vos produits, réservez vos quantités, recevez une alerte à l’arrivée."
+            title="Prochains cargos"
+            description="Choisissez un arrivage, ajoutez plusieurs produits au panier — une seule commande par cargo."
             webp="/images/landing/section-fresh.webp"
             jpg="/images/landing/section-fresh.jpg"
             alt="Produits frais pour arrivage"
         />
 
         <section class="bg-stone-soft px-4 py-12 sm:px-5 sm:py-14 md:px-8 md:py-20">
-            <div class="mx-auto max-w-6xl space-y-8 sm:space-y-10">
+            <div class="mx-auto max-w-6xl space-y-10 sm:space-y-12">
                 <div
-                    v-if="nextArrival"
-                    class="grid gap-5 border border-forest-900/10 bg-white p-5 sm:gap-6 sm:p-8 md:grid-cols-[1.2fr_0.8fr] md:p-10"
+                    v-if="sharedCargoCartCount > 0"
+                    class="flex flex-col gap-3 border border-forest-900/10 bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
                 >
-                    <div>
-                        <p class="text-xs tracking-[0.18em] text-brass uppercase sm:text-sm">
-                            Prochain cargo ouvert
-                        </p>
-                        <h2 class="font-display mt-3 text-2xl text-forest-900 sm:text-3xl">
-                            {{ nextArrival.name ?? nextArrival.label }}
-                        </h2>
-                        <div class="mt-3 space-y-1 text-sm text-ink-muted sm:text-base">
-                            <p>{{ nextArrival.label }}</p>
-                            <p>
-                                Arrivée estimée
-                                <span class="font-medium text-forest-900">{{ nextArrival.eta }}</span>
+                    <p class="text-sm text-forest-900">
+                        <span class="font-medium">{{ sharedCargoCartCount }}</span>
+                        article{{ sharedCargoCartCount > 1 ? 's' : '' }} dans le panier arrivage
+                        <span v-if="cargo_cart.cargo_id" class="text-ink-muted">
+                            · un seul cargo par commande
+                        </span>
+                    </p>
+                    <Link
+                        href="/panier-arrivage"
+                        class="inline-flex min-h-11 items-center justify-center bg-forest-900 px-5 text-sm font-semibold text-white"
+                    >
+                        Voir le panier arrivage
+                    </Link>
+                </div>
+
+                <div>
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                            <h2 class="font-display text-2xl text-forest-900 sm:text-3xl">
+                                Arrivages à venir
+                            </h2>
+                            <p class="mt-2 text-sm text-ink-muted">
+                                Sélectionnez un cargo pour filtrer les produits.
                             </p>
                         </div>
-                    </div>
-                    <div class="flex items-stretch md:items-center md:justify-end">
-                        <Link
-                            href="/courses"
-                            class="inline-flex min-h-12 w-full items-center justify-center bg-forest-900 px-6 text-sm font-semibold text-white transition hover:bg-forest-800 md:w-auto"
+                        <button
+                            v-if="filters.cargo"
+                            type="button"
+                            class="text-sm font-medium text-forest-800 underline"
+                            @click="selectCargo(null)"
                         >
-                            Produit manquant ? Course perso
-                        </Link>
+                            Voir tous les produits
+                        </button>
+                    </div>
+
+                    <div
+                        v-if="cargos.length"
+                        class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                    >
+                        <button
+                            v-for="cargo in cargos"
+                            :key="cargo.id"
+                            type="button"
+                            class="border p-5 text-left transition sm:p-6"
+                            :class="
+                                filters.cargo === cargo.id
+                                    ? 'border-forest-900 bg-forest-900 text-white'
+                                    : 'border-forest-900/10 bg-white hover:border-forest-900/30'
+                            "
+                            @click="selectCargo(filters.cargo === cargo.id ? null : cargo.id)"
+                        >
+                            <p
+                                class="text-xs tracking-[0.16em] uppercase"
+                                :class="filters.cargo === cargo.id ? 'text-brass-light' : 'text-brass'"
+                            >
+                                {{ cargo.code }}
+                            </p>
+                            <h3 class="font-display mt-2 text-xl sm:text-2xl">{{ cargo.name }}</h3>
+                            <p
+                                class="mt-2 text-sm"
+                                :class="filters.cargo === cargo.id ? 'text-white/75' : 'text-ink-muted'"
+                            >
+                                {{ cargo.route }}
+                            </p>
+                            <div
+                                class="mt-5 flex items-end justify-between gap-3 border-t pt-4"
+                                :class="
+                                    filters.cargo === cargo.id
+                                        ? 'border-white/20'
+                                        : 'border-forest-900/10'
+                                "
+                            >
+                                <div class="text-sm">
+                                    <p :class="filters.cargo === cargo.id ? 'text-white/70' : 'text-ink-muted'">
+                                        Arrivée estimée
+                                    </p>
+                                    <p class="font-medium">
+                                        {{ cargo.estimated_arrival_at ?? 'Bientôt' }}
+                                    </p>
+                                </div>
+                                <p class="text-right text-sm font-semibold">
+                                    {{ cargo.products_count }}
+                                    produit{{ cargo.products_count > 1 ? 's' : '' }}
+                                </p>
+                            </div>
+                        </button>
+                    </div>
+                    <div
+                        v-else
+                        class="mt-6 border border-dashed border-forest-900/20 bg-white p-8 text-center text-ink-muted"
+                    >
+                        Aucun cargo ouvert pour le moment.
                     </div>
                 </div>
 
-                <div v-for="cargo in cargos" :key="cargo.id" class="overflow-hidden bg-white">
-                    <div class="border-b border-forest-900/10 px-4 py-5 sm:px-6 md:px-8">
-                        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                            <div class="min-w-0">
-                                <h3 class="font-display text-xl text-forest-900 sm:text-2xl">
-                                    {{ cargo.name }}
+                <div>
+                    <h2 class="font-display text-2xl text-forest-900 sm:text-3xl">
+                        Produits à réserver
+                    </h2>
+                    <p class="mt-2 text-sm text-ink-muted">
+                        Ajoutez plusieurs articles — uniquement s’ils appartiennent au même cargo.
+                    </p>
+
+                    <div
+                        v-if="products.length"
+                        class="mt-8 grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3"
+                    >
+                        <article
+                            v-for="product in products"
+                            :key="product.id"
+                            class="flex flex-col overflow-hidden border border-forest-900/10 bg-white transition hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-28px_rgba(15,46,36,0.35)]"
+                        >
+                            <div class="aspect-[4/3] overflow-hidden bg-stone-soft">
+                                <ProductImage
+                                    :src="product.image_url"
+                                    :alt="product.product_name ?? 'Produit'"
+                                    img-class="h-full w-full object-cover"
+                                />
+                            </div>
+                            <div class="flex flex-1 flex-col p-4 sm:p-5">
+                                <div class="flex items-start justify-between gap-3">
+                                    <p class="text-xs tracking-wide text-ink-muted uppercase">
+                                        {{ product.category ?? 'Produit' }}
+                                    </p>
+                                    <span class="shrink-0 text-xs font-semibold text-forest-700">
+                                        {{ product.cargo_code }}
+                                    </span>
+                                </div>
+                                <h3 class="font-display mt-3 text-xl text-forest-900">
+                                    {{ product.product_name }}
                                 </h3>
-                                <div class="mt-2 space-y-1 text-sm text-ink-muted">
-                                    <p>{{ cargo.route }}</p>
-                                    <p>
-                                        Départ {{ cargo.departure_at ?? '—' }} · ETA
-                                        {{ cargo.estimated_arrival_at ?? '—' }}
-                                    </p>
-                                </div>
-                            </div>
-                            <span class="text-sm font-semibold text-forest-700">{{ cargo.status_label }}</span>
-                        </div>
-                    </div>
-
-                    <div class="divide-y divide-forest-900/10">
-                        <div v-for="item in cargo.items" :key="item.id" class="px-4 py-5 sm:px-6 md:px-8">
-                            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                <div class="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
-                                    <div class="h-14 w-14 shrink-0 overflow-hidden bg-stone-soft sm:h-16 sm:w-16">
-                                        <ProductImage
-                                            :src="item.image_url"
-                                            :alt="item.product_name ?? 'Produit'"
-                                            img-class="h-full w-full object-cover"
-                                        />
-                                    </div>
-                                    <div class="min-w-0">
-                                        <p class="font-medium text-forest-900">{{ item.product_name }}</p>
-                                        <p class="text-xs text-ink-muted">{{ item.category }}</p>
-                                        <p class="mt-2 text-sm text-ink-muted">
-                                            Restant {{ item.quantity_remaining }} /
-                                            {{ item.quantity_available }}
-                                        </p>
-                                        <p class="text-sm text-ink-muted">
-                                            {{ item.unit_price }} / {{ item.unit }}
-                                        </p>
-                                    </div>
-                                </div>
-                                <button
-                                    type="button"
-                                    class="min-h-11 w-full bg-brass px-4 text-sm font-semibold text-forest-950 transition hover:bg-brass-light disabled:opacity-40 sm:w-auto"
-                                    :disabled="item.quantity_remaining <= 0"
-                                    @click="openReserve(item)"
+                                <p class="mt-2 text-xs text-ink-muted">
+                                    Cargo {{ product.cargo_code }}
+                                    <span v-if="product.estimated_arrival_at">
+                                        · arrive le {{ product.estimated_arrival_at }}
+                                    </span>
+                                </p>
+                                <p
+                                    v-if="product.is_partner && product.partner_name"
+                                    class="mt-1 text-xs text-ink-muted"
                                 >
-                                    Réserver
-                                </button>
-                            </div>
-
-                            <form
-                                v-if="activeItemId === item.id"
-                                class="mt-5 grid gap-4 border border-forest-900/10 bg-stone-soft p-4 sm:p-5 md:grid-cols-2 lg:grid-cols-4"
-                                @submit.prevent="submitReserve"
-                            >
-                                <div>
-                                    <label class="text-xs font-medium text-ink-muted">Nom</label>
-                                    <input
-                                        v-model="form.guest_name"
-                                        type="text"
-                                        required
-                                        class="mt-1 h-11 w-full border border-forest-900/15 bg-white px-3"
-                                    />
-                                    <p v-if="form.errors.guest_name" class="mt-1 text-xs text-red-600">
-                                        {{ form.errors.guest_name }}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label class="text-xs font-medium text-ink-muted">E-mail</label>
-                                    <input
-                                        v-model="form.guest_email"
-                                        type="email"
-                                        required
-                                        class="mt-1 h-11 w-full border border-forest-900/15 bg-white px-3"
-                                    />
-                                    <p v-if="form.errors.guest_email" class="mt-1 text-xs text-red-600">
-                                        {{ form.errors.guest_email }}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label class="text-xs font-medium text-ink-muted">Quantité</label>
-                                    <input
-                                        v-model.number="form.quantity"
-                                        type="number"
-                                        min="1"
-                                        :max="item.quantity_remaining"
-                                        required
-                                        class="mt-1 h-11 w-full border border-forest-900/15 bg-white px-3"
-                                    />
-                                    <p v-if="form.errors.quantity" class="mt-1 text-xs text-red-600">
-                                        {{ form.errors.quantity }}
-                                    </p>
-                                </div>
-                                <div class="flex flex-col gap-2 sm:flex-row sm:items-end lg:flex-col xl:flex-row">
-                                    <button
-                                        type="submit"
-                                        class="min-h-11 flex-1 bg-forest-900 px-4 text-sm font-semibold text-white disabled:opacity-50"
-                                        :disabled="form.processing"
-                                    >
-                                        Confirmer
-                                    </button>
+                                    Partenaire : {{ product.partner_name }}
+                                </p>
+                                <p
+                                    v-if="product.description"
+                                    class="mt-3 line-clamp-2 flex-1 text-sm text-ink-muted"
+                                >
+                                    {{ product.description }}
+                                </p>
+                                <div
+                                    class="mt-5 flex flex-col gap-3 border-t border-forest-900/10 pt-4 sm:flex-row sm:items-end sm:justify-between"
+                                >
+                                    <div>
+                                        <p class="text-lg font-semibold text-forest-900">
+                                            {{ product.unit_price }}
+                                        </p>
+                                        <p class="text-xs text-ink-muted">
+                                            / {{ product.unit }}
+                                            · {{ product.quantity_remaining }} restant{{
+                                                product.quantity_remaining > 1 ? 's' : ''
+                                            }}
+                                        </p>
+                                    </div>
                                     <button
                                         type="button"
-                                        class="min-h-11 px-4 text-sm font-medium text-ink-muted transition hover:text-forest-900"
-                                        @click="closeReserve"
+                                        class="min-h-11 w-full bg-forest-900 px-4 text-sm font-semibold text-white transition hover:bg-forest-800 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+                                        :disabled="!product.can_reserve || addingId === product.id"
+                                        @click="addToCart(product)"
                                     >
-                                        Annuler
+                                        <span v-if="addingId === product.id">Ajout…</span>
+                                        <span v-else>
+                                            {{ product.can_reserve ? 'Ajouter' : 'Indisponible' }}
+                                        </span>
                                     </button>
                                 </div>
-                                <p
-                                    v-if="form.errors.cargo_item_id"
-                                    class="text-xs text-red-600 md:col-span-2 lg:col-span-4"
-                                >
-                                    {{ form.errors.cargo_item_id }}
-                                </p>
-                            </form>
-                        </div>
+                            </div>
+                        </article>
                     </div>
-                </div>
-
-                <div
-                    v-if="!cargos.length"
-                    class="border border-dashed border-forest-900/20 bg-white p-8 text-center text-ink-muted sm:p-10"
-                >
-                    Aucun cargo ouvert aux réservations pour le moment.
+                    <div
+                        v-else
+                        class="mt-8 border border-dashed border-forest-900/20 bg-white p-8 text-center text-ink-muted"
+                    >
+                        Aucun produit à réserver
+                        {{ filters.cargo ? 'pour ce cargo' : 'pour le moment' }}.
+                    </div>
                 </div>
             </div>
         </section>

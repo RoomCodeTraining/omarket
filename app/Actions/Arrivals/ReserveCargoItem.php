@@ -29,7 +29,7 @@ final class ReserveCargoItem
                 ->lockForUpdate()
                 ->findOrFail($cargoItem->id);
 
-            if ($item->cargo?->status !== CargoStatus::Open) {
+            if (! in_array($item->cargo?->status, [CargoStatus::Open, CargoStatus::InTransit], true)) {
                 throw ValidationException::withMessages([
                     'cargo_item_id' => 'Ce cargo n’accepte plus de réservations.',
                 ]);

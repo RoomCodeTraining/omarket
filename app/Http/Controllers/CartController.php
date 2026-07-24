@@ -11,6 +11,7 @@ use App\Http\Requests\Cart\StoreCartItemRequest;
 use App\Http\Requests\Cart\UpdateCartItemRequest;
 use App\Models\Product;
 use App\Support\Cart;
+use App\Support\SiteSettings;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -27,6 +28,7 @@ class CartController extends Controller
             'total_cents' => Cart::totalCents(),
             'count' => Cart::count(),
             'can_checkout' => $items->isNotEmpty() && $items->every(fn (array $item) => $item['in_stock']),
+            'checkout_requires_account' => SiteSettings::checkoutRequiresAccount(),
         ]);
     }
 

@@ -18,7 +18,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'description',
     'quantity',
     'budget_cents',
+    'has_supplier',
+    'supplier_name',
+    'supplier_contact',
+    'cargo_id',
     'status',
+    'validated_at',
+    'cargo_assigned_at',
 ])]
 class CustomRequest extends Model
 {
@@ -30,7 +36,10 @@ class CustomRequest extends Model
         return [
             'quantity' => 'integer',
             'budget_cents' => 'integer',
+            'has_supplier' => 'boolean',
             'status' => CustomRequestStatus::class,
+            'validated_at' => 'datetime',
+            'cargo_assigned_at' => 'datetime',
         ];
     }
 
@@ -39,8 +48,32 @@ class CustomRequest extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function cargo(): BelongsTo
+    {
+        return $this->belongsTo(Cargo::class);
+    }
+
     public function quotes(): HasMany
     {
         return $this->hasMany(Quote::class);
+    }
+
+    public function isValidated(): bool
+    {
+        return $this->validated_at !== null;
+    }
+
+    public function supplierLabel(): string
+    {
+        if (! $this->has_supplier) {
+            return 'Aucun fournisseur précisé';
+        }
+
+        $parts = array_filter([
+            $this->supplier_name,
+            $this->supplier_contact,
+        ]);
+
+        return $parts !== [] ? implode(' — ', $parts) : 'Fournisseur indiqué (détails à préciser)';
     }
 }

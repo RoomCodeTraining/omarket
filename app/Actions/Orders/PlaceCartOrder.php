@@ -47,7 +47,19 @@ final class PlaceCartOrder
         }
 
         return DB::transaction(function () use ($data, $user, $raw) {
+            if (SiteSettings::checkoutRequiresAccount() && $user === null) {
+                throw ValidationException::withMessages([
+                    'guest_email' => 'Un compte client est requis pour valider une commande. Connectez-vous ou créez un compte.',
+                ]);
+            }
+
             $resolvedUser = $this->resolveUser($data, $user);
+
+            if (SiteSettings::checkoutRequiresAccount() && $resolvedUser === null) {
+                throw ValidationException::withMessages([
+                    'guest_email' => 'Un compte client est requis pour valider une commande.',
+                ]);
+            }
 
             $lines = [];
             $subtotal = 0;
@@ -141,7 +153,16 @@ final class PlaceCartOrder
             return $user;
         }
 
-        if (! ($data['create_account'] ?? false)) {
+        $requiresAccount = SiteSettings::checkoutRequiresAccount();
+        $createAccount = (bool) ($data['create_account'] ?? false);
+
+        if ($requiresAccount && ! $createAccount) {
+            throw ValidationException::withMessages([
+                'guest_email' => 'Un compte client est requis pour valider une commande. Cochez « Créer un compte » ou connectez-vous.',
+            ]);
+        }
+
+        if (! $createAccount) {
             return null;
         }
 
@@ -155,7 +176,7 @@ final class PlaceCartOrder
 
         if (User::query()->where('email', $data['guest_email'])->exists()) {
             throw ValidationException::withMessages([
-                'guest_email' => 'Un compte existe déjà avec cet e-mail. Connectez-vous ou validez en invité.',
+                'guest_email' => 'Un compte existe déjà avec cet e-mail. Connectez-vous pour valider votre commande.',
             ]);
         }
 

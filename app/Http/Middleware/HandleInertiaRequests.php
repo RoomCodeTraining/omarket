@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\CargoCart;
 use App\Support\Cart;
 use App\Support\SiteSettings;
 use Illuminate\Http\Request;
@@ -61,6 +62,10 @@ class HandleInertiaRequests extends Middleware
             ],
             'cart' => [
                 'count' => Cart::count(),
+            ],
+            'cargo_cart' => [
+                'count' => CargoCart::count(),
+                'cargo_id' => CargoCart::cargoId(),
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),

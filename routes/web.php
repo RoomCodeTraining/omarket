@@ -3,6 +3,7 @@
 use App\Http\Controllers\ArrivalController;
 use App\Http\Controllers\Auth\ClientAuthController;
 use App\Http\Controllers\Auth\PartnerAuthController;
+use App\Http\Controllers\CargoCartController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\ClientAccountController;
 use App\Http\Controllers\CourseController;
@@ -16,6 +17,12 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/boutique', [ShopController::class, 'index'])->name('shop.index');
 Route::get('/arrivages', [ArrivalController::class, 'index'])->name('arrivals.index');
+Route::get('/panier-arrivage', [CargoCartController::class, 'index'])->name('cargo-cart.index');
+Route::post('/panier-arrivage', [CargoCartController::class, 'store'])->name('cargo-cart.store');
+Route::patch('/panier-arrivage/{cargoItemId}', [CargoCartController::class, 'update'])->name('cargo-cart.update');
+Route::delete('/panier-arrivage/{cargoItemId}', [CargoCartController::class, 'destroy'])->name('cargo-cart.destroy');
+Route::post('/panier-arrivage/commander', [CargoCartController::class, 'checkout'])->name('cargo-cart.checkout');
+Route::delete('/panier-arrivage', [CargoCartController::class, 'clear'])->name('cargo-cart.clear');
 
 Route::get('/courses', [CourseController::class, 'index'])->name('courses.index');
 Route::post('/courses', [CourseController::class, 'store'])->name('courses.store');

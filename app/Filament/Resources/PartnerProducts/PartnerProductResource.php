@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\PartnerProducts;
 
 use App\Actions\Products\ApproveProduct;
+use App\Actions\Products\RecordPartnerWarehouseDeposit;
 use App\Enums\ProductStatus;
 use App\Filament\Resources\PartnerProducts\Pages\EditPartnerProduct;
 use App\Filament\Resources\PartnerProducts\Pages\ListPartnerProducts;
@@ -24,6 +25,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class PartnerProductResource extends Resource
 {
@@ -45,7 +47,7 @@ class PartnerProductResource extends Resource
     {
         return parent::getEloquentQuery()
             ->whereNotNull('user_id')
-            ->with(['owner', 'category']);
+            ->with(['owner', 'category', 'cargo']);
     }
 
     public static function form(Schema $schema): Schema
@@ -54,16 +56,12 @@ class PartnerProductResource extends Resource
             Section::make('Partenaire')
                 ->description('Compte à l’origine de cette fiche — lecture seule.')
                 ->icon('heroicon-o-building-storefront')
+                ->columnSpanFull()
                 ->schema([
                     Placeholder::make('partner_name')
                         ->label('Soumis par')
                         ->content(fn (?Product $record): string => $record?->owner?->name ?? '—'),
-                ]),
-            Section::make('Identité du produit')
-                ->description('Contenu proposé par le partenaire.')
-                ->icon('heroicon-o-tag')
-                ->columns(2)
-                ->schema([
+
                     Select::make('category_id')
                         ->label('Catégorie')
                         ->relationship('category', 'name')
@@ -74,12 +72,23 @@ class PartnerProductResource extends Resource
                         ->label('Nom')
                         ->required()
                         ->maxLength(160),
-                    TextInput::make('slug')
-                        ->label('Slug')
-                        ->required()
-                        ->maxLength(180)
-                        ->unique(ignoreRecord: true)
-                        ->helperText('URL boutique.'),
+                    Placeholder::make('cargo_label')
+                        ->label('Cargo associé')
+                        ->content(fn (?Product $record): string => $record?->cargo
+                            ? "{$record->cargo->code} — {$record->cargo->name}"
+                            : '—'),
+                    Placeholder::make('deposit_status')
+                        ->label('Dépôt entrepôt')
+                        ->content(function (?Product $record): string {
+                            if ($record === null || $record->warehouse_deposited_at === null) {
+                                return 'Non déposé — enregistrement réservé à l’admin Ôhéfê';
+                            }
+
+                            $qty = $record->warehouse_deposited_quantity;
+
+                            return 'Déposé le '.$record->warehouse_deposited_at->format('d/m/Y H:i')
+                                .($qty !== null ? " · quantité {$qty}" : '');
+                        }),
                     Textarea::make('description')
                         ->label('Description')
                         ->rows(5)
@@ -121,6 +130,7 @@ class PartnerProductResource extends Resource
             Section::make('Visuel')
                 ->description('Image produit affichée en boutique après publication.')
                 ->icon('heroicon-o-photo')
+                ->columnSpanFull()
                 ->schema([
                     ProductImageUpload::make(),
                 ]),
@@ -139,10 +149,24 @@ class PartnerProductResource extends Resource
                 TextColumn::make('name')->label('Produit')->searchable()->sortable(),
                 TextColumn::make('owner.name')->label('Partenaire')->searchable()->sortable(),
                 TextColumn::make('category.name')->label('Catégorie')->toggleable(),
+                TextColumn::make('cargo.code')->label('Cargo')->toggleable(),
                 TextColumn::make('price_cents')
                     ->label('Prix')
                     ->formatStateUsing(fn (int $state): string => number_format($state / 100, 2, ',', ' ').' $'),
                 TextColumn::make('stock_quantity')->label('Stock')->sortable(),
+                TextColumn::make('warehouse_deposited_at')
+                    ->label('Dépôt')
+                    ->formatStateUsing(function ($state, Product $record): string {
+                        if (! $state) {
+                            return 'En attente';
+                        }
+
+                        $qty = $record->warehouse_deposited_quantity;
+
+                        return $qty !== null ? "Déposé ({$qty})" : 'Déposé';
+                    })
+                    ->badge()
+                    ->color(fn ($state): string => $state ? 'success' : 'warning'),
                 TextColumn::make('status')
                     ->label('Statut')
                     ->badge()
@@ -162,6 +186,14 @@ class PartnerProductResource extends Resource
                     ->options(collect(ProductStatus::cases())->mapWithKeys(
                         fn (ProductStatus $status) => [$status->value => $status->label()],
                     )),
+                TernaryFilter::make('warehouse_deposited_at')
+                    ->label('Déposé entrepôt')
+                    ->nullable()
+                    ->queries(
+                        true: fn (Builder $query) => $query->whereNotNull('warehouse_deposited_at'),
+                        false: fn (Builder $query) => $query->whereNull('warehouse_deposited_at'),
+                        blank: fn (Builder $query) => $query,
+                    ),
                 TernaryFilter::make('awaiting_review')
                     ->label('En revue uniquement')
                     ->queries(
@@ -173,18 +205,53 @@ class PartnerProductResource extends Resource
             ->actions([
                 EditAction::make()->label('Examiner'),
                 Action::make('approve')
-                    ->label('Publier')
+                    ->label('Publier sur arrivage')
                     ->icon('heroicon-o-check')
                     ->color('success')
                     ->visible(fn (Product $record): bool => $record->status === ProductStatus::PendingReview)
                     ->requiresConfirmation()
                     ->modalHeading('Publier le produit partenaire ?')
-                    ->modalDescription('Il sera visible en boutique après publication.')
-                    ->action(function (Product $record, ApproveProduct $approveProduct): void {
-                        $approveProduct->handle($record);
+                    ->modalDescription('Il sera visible avec les produits du cargo (pas en boutique).')
+                    ->action(function (Product $record): void {
+                        app(ApproveProduct::class)->handle($record);
 
                         Notification::make()
-                            ->title('Produit partenaire publié')
+                            ->title('Produit partenaire publié sur l’arrivage')
+                            ->success()
+                            ->send();
+                    }),
+                Action::make('recordDeposit')
+                    ->label('Enregistrer dépôt')
+                    ->icon('heroicon-o-archive-box')
+                    ->color('warning')
+                    ->visible(fn (Product $record): bool => $record->cargo_id !== null)
+                    ->form([
+                        TextInput::make('quantity')
+                            ->label('Quantité déposée')
+                            ->numeric()
+                            ->required()
+                            ->minValue(1)
+                            ->default(fn (Product $record): int => max(1, (int) $record->stock_quantity))
+                            ->helperText('Quantité reçue à l’entrepôt Ôhéfê — visible par le partenaire.'),
+                    ])
+                    ->modalHeading('Enregistrer le dépôt entrepôt')
+                    ->modalDescription('Le partenaire sera notifié et verra la quantité dans son espace.')
+                    ->action(function (Product $record, array $data): void {
+                        $admin = Auth::user();
+
+                        if ($admin === null) {
+                            return;
+                        }
+
+                        app(RecordPartnerWarehouseDeposit::class)->handle(
+                            $record,
+                            $admin,
+                            (int) $data['quantity'],
+                        );
+
+                        Notification::make()
+                            ->title('Dépôt enregistré')
+                            ->body('Le partenaire a été notifié.')
                             ->success()
                             ->send();
                     }),

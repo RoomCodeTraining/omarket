@@ -8,15 +8,15 @@ use App\Models\Quote;
 use App\Models\User;
 use App\Notifications\QuoteSentToClient;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 
 it('sends a draft quote to the client and marks the course as quoted', function () {
     Notification::fake();
 
     $client = User::factory()->create();
-    $request = CustomRequest::factory()->create([
+    $request = CustomRequest::factory()->validated()->create([
         'user_id' => $client->id,
         'guest_email' => $client->email,
-        'status' => CustomRequestStatus::Submitted,
     ]);
     $quote = Quote::factory()->create([
         'custom_request_id' => $request->id,
@@ -31,3 +31,18 @@ it('sends a draft quote to the client and marks the course as quoted', function 
 
     Notification::assertSentTo($client, QuoteSentToClient::class);
 });
+
+it('refuses to send a quote before the course is validated', function () {
+    $client = User::factory()->create();
+    $request = CustomRequest::factory()->create([
+        'user_id' => $client->id,
+        'status' => CustomRequestStatus::Submitted,
+        'validated_at' => null,
+    ]);
+    $quote = Quote::factory()->create([
+        'custom_request_id' => $request->id,
+        'status' => QuoteStatus::Draft,
+    ]);
+
+    app(SendQuote::class)->handle($quote);
+})->throws(ValidationException::class);

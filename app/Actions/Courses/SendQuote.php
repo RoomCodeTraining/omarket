@@ -24,6 +24,14 @@ final class SendQuote
             ]);
         }
 
+        $request = $quote->customRequest;
+
+        if ($request === null || ! $request->isValidated()) {
+            throw ValidationException::withMessages([
+                'quote' => 'Validez d’abord la course avant d’envoyer un devis.',
+            ]);
+        }
+
         $quote = DB::transaction(function () use ($quote) {
             $quote->forceFill([
                 'status' => QuoteStatus::Sent,

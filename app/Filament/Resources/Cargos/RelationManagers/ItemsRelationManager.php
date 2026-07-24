@@ -2,16 +2,21 @@
 
 namespace App\Filament\Resources\Cargos\RelationManagers;
 
+use App\Actions\Cargos\AddCargoItems;
+use App\Filament\Resources\Cargos\Support\CargoItemsRepeater;
 use App\Models\CargoItem;
+use App\Models\Product;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -41,6 +46,14 @@ class ItemsRelationManager extends RelationManager
                         ->searchable()
                         ->preload()
                         ->required()
+                        ->live()
+                        ->afterStateUpdated(function (?int $state, Set $set): void {
+                            $product = $state ? Product::query()->find($state) : null;
+
+                            if ($product) {
+                                $set('unit_price_cents', $product->price_cents);
+                            }
+                        })
                         ->unique(
                             table: 'cargo_items',
                             column: 'product_id',
@@ -102,9 +115,30 @@ class ItemsRelationManager extends RelationManager
                     ->sortable(),
             ])
             ->headerActions([
-                CreateAction::make()
-                    ->label('Ajouter un produit')
-                    ->modalHeading('Ajouter une ligne à l’arrivage'),
+                Action::make('addItems')
+                    ->label('Ajouter des produits')
+                    ->icon('heroicon-o-plus')
+                    ->color('primary')
+                    ->modalHeading('Ajouter des produits à l’arrivage')
+                    ->modalDescription('Saisissez plusieurs lignes : produit, quantité et prix.')
+                    ->modalSubmitActionLabel('Enregistrer les lignes')
+                    ->form([
+                        CargoItemsRepeater::make(
+                            excludeProductIds: $this->getOwnerRecord()
+                                ->items()
+                                ->pluck('product_id')
+                                ->all(),
+                        ),
+                    ])
+                    ->action(function (array $data): void {
+                        $lines = CargoItemsRepeater::toLines($data['items'] ?? []);
+                        $created = app(AddCargoItems::class)->handle($this->getOwnerRecord(), $lines);
+
+                        Notification::make()
+                            ->title(count($created).' produit(s) ajouté(s)')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->recordActions([
                 EditAction::make()->label('Modifier'),
@@ -116,6 +150,25 @@ class ItemsRelationManager extends RelationManager
                 ]),
             ])
             ->emptyStateHeading('Aucun produit sur cet arrivage')
-            ->emptyStateDescription('Ajoutez les lignes produits que les clients pourront réserver.');
+            ->emptyStateDescription('Ajoutez plusieurs produits via le bouton « Ajouter des produits ».')
+            ->emptyStateActions([
+                Action::make('addItemsEmpty')
+                    ->label('Ajouter des produits')
+                    ->icon('heroicon-o-plus')
+                    ->modalHeading('Ajouter des produits à l’arrivage')
+                    ->modalSubmitActionLabel('Enregistrer les lignes')
+                    ->form([
+                        CargoItemsRepeater::make(),
+                    ])
+                    ->action(function (array $data): void {
+                        $lines = CargoItemsRepeater::toLines($data['items'] ?? []);
+                        $created = app(AddCargoItems::class)->handle($this->getOwnerRecord(), $lines);
+
+                        Notification::make()
+                            ->title(count($created).' produit(s) ajouté(s)')
+                            ->success()
+                            ->send();
+                    }),
+            ]);
     }
 }

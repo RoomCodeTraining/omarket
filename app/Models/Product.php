@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable([
     'category_id',
     'user_id',
+    'cargo_id',
     'name',
     'slug',
     'description',
@@ -23,6 +24,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'status',
     'image_path',
     'is_featured',
+    'listed_in_shop',
+    'warehouse_deposited_at',
+    'warehouse_deposited_quantity',
+    'deposit_reminder_sent_at',
 ])]
 class Product extends Model
 {
@@ -38,6 +43,10 @@ class Product extends Model
             'stock_quantity' => 'integer',
             'status' => ProductStatus::class,
             'is_featured' => 'boolean',
+            'listed_in_shop' => 'boolean',
+            'warehouse_deposited_at' => 'datetime',
+            'warehouse_deposited_quantity' => 'integer',
+            'deposit_reminder_sent_at' => 'datetime',
         ];
     }
 
@@ -74,14 +83,29 @@ class Product extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    public function cargo(): BelongsTo
+    {
+        return $this->belongsTo(Cargo::class);
+    }
+
     public function cargoItems(): HasMany
     {
         return $this->hasMany(CargoItem::class);
     }
 
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('status', ProductStatus::Published);
+    }
+
+    public function scopeListedInShop(Builder $query): Builder
+    {
+        return $query->where('listed_in_shop', true)->whereNull('user_id');
     }
 
     public function scopePendingReview(Builder $query): Builder
@@ -101,7 +125,15 @@ class Product extends Model
 
     public function isAvailableLocally(): bool
     {
-        return $this->status === ProductStatus::Published && $this->stock_quantity > 0;
+        return $this->status === ProductStatus::Published
+            && $this->listed_in_shop
+            && $this->user_id === null
+            && $this->stock_quantity > 0;
+    }
+
+    public function isWarehouseDeposited(): bool
+    {
+        return $this->warehouse_deposited_at !== null;
     }
 
     public function isOwnedBy(User $user): bool
